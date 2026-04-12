@@ -1,4 +1,8 @@
 import type { Handler } from "aws-lambda";
+import { SignatureV4 } from "@smithy/signature-v4";
+import { Sha256 } from "@aws-crypto/sha256-js";
+import * as https from "https";
+import { URL } from "url";
 
 /**
  * Handler principal de la fonction sync-youtube.
@@ -6,7 +10,7 @@ import type { Handler } from "aws-lambda";
  * Logique V1.0 :
  *  1. Récupère l'ID de la playlist "uploads" de la chaîne via channels.list
  *  2. Lit les vidéos via playlistItems.list (max 50 par page, pagination complète)
- *  3. Pour chaque vidéo, upsert un ContentPost dans DynamoDB via l'API Amplify
+ *  3. Pour chaque vidéo, upsert un ContentPost dans DynamoDB via AppSync (signé IAM/SigV4)
  *
  * Pourquoi playlistItems et pas search.list ?
  *   → search.list coûte 100 unités de quota par appel (très cher)
@@ -14,6 +18,7 @@ import type { Handler } from "aws-lambda";
  */
 
 const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
+const REQUEST_TIMEOUT_MS = 10_000;
 
 interface YouTubePlaylistItem {
   snippet: {
@@ -25,23 +30,183 @@ interface YouTubePlaylistItem {
   };
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`YouTube API error: ${res.status} ${await res.text()}`);
-  }
-  return res.json() as Promise<T>;
+// ---------------------------------------------------------------------------
+// HTTP helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * httpGet — effectue un GET HTTPS avec gestion du timeout, validation du
+ * status HTTP et parsing JSON. Lance une Error explicite sur 4xx/5xx.
+ */
+async function httpGet<T>(url: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, (res) => {
+      let data = "";
+      const statusCode = res.statusCode ?? 0;
+      const statusMessage = res.statusMessage ?? "";
+
+      res.setEncoding("utf8");
+      res.on("data", (chunk: string) => (data += chunk));
+      res.on("end", () => {
+        if (statusCode < 200 || statusCode >= 300) {
+          reject(
+            new Error(
+              `HTTP ${statusCode}${statusMessage ? ` ${statusMessage}` : ""} for ${url}. Body: ${data}`
+            )
+          );
+          return;
+        }
+        try {
+          resolve(JSON.parse(data) as T);
+        } catch (e) {
+          reject(new Error(`JSON parse error: ${e}`));
+        }
+      });
+    });
+
+    req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+      req.destroy(new Error(`Request timeout after ${REQUEST_TIMEOUT_MS}ms for ${url}`));
+    });
+
+    req.on("error", reject);
+  });
 }
 
 /**
- * Étape 1 — Récupérer l'ID de la playlist "uploads" de la chaîne
+ * appsyncRequest — effectue une requête GraphQL signée en IAM (SigV4) vers AppSync.
+ * Vérifie le status HTTP et la présence d'erreurs GraphQL dans la réponse.
  */
+async function appsyncRequest<T>(
+  endpoint: string,
+  query: string,
+  variables: Record<string, unknown>
+): Promise<T> {
+  const url = new URL(endpoint);
+  const body = JSON.stringify({ query, variables });
+  const region = process.env.AWS_REGION ?? "eu-west-3";
+
+  const signer = new SignatureV4({
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      sessionToken: process.env.AWS_SESSION_TOKEN,
+    },
+    region,
+    service: "appsync",
+    sha256: Sha256,
+  });
+
+  const signed = await signer.sign({
+    method: "POST",
+    hostname: url.hostname,
+    path: url.pathname,
+    protocol: url.protocol,
+    headers: {
+      "Content-Type": "application/json",
+      host: url.hostname,
+    },
+    body,
+  });
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: url.hostname,
+      path: url.pathname,
+      method: "POST",
+      headers: {
+        ...signed.headers,
+        "Content-Length": Buffer.byteLength(body),
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.setEncoding("utf8");
+      res.on("data", (chunk: string) => (data += chunk));
+      res.on("end", () => {
+        try {
+          const parsed = JSON.parse(data) as {
+            data?: T;
+            errors?: Array<{ message?: string }>;
+          };
+          const statusCode = res.statusCode ?? 0;
+
+          if (statusCode < 200 || statusCode >= 300) {
+            const statusMessage = res.statusMessage ? ` ${res.statusMessage}` : "";
+            reject(
+              new Error(
+                `AppSync request failed with HTTP ${statusCode}${statusMessage}: ${data}`
+              )
+            );
+            return;
+          }
+
+          if (Array.isArray(parsed.errors) && parsed.errors.length > 0) {
+            const graphqlMessage = parsed.errors
+              .map((e) => e.message ?? JSON.stringify(e))
+              .join("; ");
+            reject(new Error(`AppSync GraphQL error: ${graphqlMessage}`));
+            return;
+          }
+
+          resolve(parsed.data as T);
+        } catch (e) {
+          reject(new Error(`AppSync JSON parse error: ${e}`));
+        }
+      });
+    });
+
+    req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+      req.destroy(new Error(`AppSync request timeout after ${REQUEST_TIMEOUT_MS}ms`));
+    });
+
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// GraphQL mutations/queries
+// ---------------------------------------------------------------------------
+
+const CREATE_CONTENT_POST = /* GraphQL */ `
+  mutation CreateContentPost($input: CreateContentPostInput!) {
+    createContentPost(input: $input) {
+      externalId
+      title
+    }
+  }
+`;
+
+const UPDATE_CONTENT_POST = /* GraphQL */ `
+  mutation UpdateContentPost($input: UpdateContentPostInput!) {
+    updateContentPost(input: $input) {
+      externalId
+      title
+    }
+  }
+`;
+
+const GET_CONTENT_POST = /* GraphQL */ `
+  query GetContentPost($externalId: String!) {
+    getContentPost(externalId: $externalId) {
+      externalId
+      title
+    }
+  }
+`;
+
+// ---------------------------------------------------------------------------
+// YouTube helpers
+// ---------------------------------------------------------------------------
+
 async function getUploadsPlaylistId(
   apiKey: string,
   channelId: string
 ): Promise<string> {
   const url = `${YOUTUBE_API_BASE}/channels?part=contentDetails&id=${channelId}&key=${apiKey}`;
-  const data = await fetchJson<{
+  const data = await httpGet<{
     items: Array<{ contentDetails: { relatedPlaylists: { uploads: string } } }>;
   }>(url);
 
@@ -51,9 +216,6 @@ async function getUploadsPlaylistId(
   return data.items[0].contentDetails.relatedPlaylists.uploads;
 }
 
-/**
- * Étape 2 — Lire toutes les vidéos de la playlist uploads (avec pagination)
- */
 async function fetchAllPlaylistItems(
   apiKey: string,
   playlistId: string
@@ -64,7 +226,7 @@ async function fetchAllPlaylistItems(
   do {
     const pageParam = pageToken ? `&pageToken=${pageToken}` : "";
     const url = `${YOUTUBE_API_BASE}/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&key=${apiKey}${pageParam}`;
-    const data = await fetchJson<{
+    const data = await httpGet<{
       items: YouTubePlaylistItem[];
       nextPageToken?: string;
     }>(url);
@@ -76,25 +238,47 @@ async function fetchAllPlaylistItems(
   return items;
 }
 
-/**
- * Étape 3 — Upsert chaque vidéo dans ContentPost via l'API Amplify Data
- *
- * NOTE : En production, remplacer l'accès direct DynamoDB par le client
- * Amplify Data (generateClient) avec les credentials Lambda appropriés.
- * Pour la V1.0, le JSON est loggué pour validation avant connexion DB.
- */
-async function upsertVideos(items: YouTubePlaylistItem[]): Promise<void> {
-  console.log(`[sync-youtube] ${items.length} vidéo(s) à synchroniser`);
+// ---------------------------------------------------------------------------
+// Upsert logic
+// ---------------------------------------------------------------------------
 
-  for (const item of items) {
-    const { snippet } = item;
-    const videoId = snippet.resourceId.videoId;
-    const thumbnailUrl =
-      snippet.thumbnails?.medium?.url ??
-      snippet.thumbnails?.default?.url ??
-      null;
+type UpsertResult = "created" | "updated";
 
-    const post = {
+async function upsertVideo(
+  endpoint: string,
+  item: YouTubePlaylistItem
+): Promise<UpsertResult> {
+  const { snippet } = item;
+  const videoId = snippet.resourceId.videoId;
+  const thumbnailUrl =
+    snippet.thumbnails?.medium?.url ??
+    snippet.thumbnails?.default?.url ??
+    null;
+
+  // Vérifie si la vidéo existe déjà via getContentPost (requête efficace par clé)
+  const existing = await appsyncRequest<{
+    getContentPost?: { externalId: string; title: string } | null;
+  }>(endpoint, GET_CONTENT_POST, { externalId: videoId });
+
+  if (existing?.getContentPost) {
+    // Mise à jour complète de tous les champs (titre, description, URL inclus)
+    await appsyncRequest(endpoint, UPDATE_CONTENT_POST, {
+      input: {
+        externalId: videoId,
+        title: snippet.title,
+        description: snippet.description?.slice(0, 500) ?? "",
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        thumbnailUrl,
+        publishedAt: snippet.publishedAt,
+        status: "published",
+        rawJson: JSON.stringify(snippet),
+      },
+    });
+    return "updated";
+  }
+
+  await appsyncRequest(endpoint, CREATE_CONTENT_POST, {
+    input: {
       source: "youtube",
       externalId: videoId,
       title: snippet.title,
@@ -104,39 +288,73 @@ async function upsertVideos(items: YouTubePlaylistItem[]): Promise<void> {
       publishedAt: snippet.publishedAt,
       status: "published",
       rawJson: JSON.stringify(snippet),
-    };
+    },
+  });
+  return "created";
+}
 
-    // TODO V1.1 : remplacer ce log par un vrai upsert Amplify Data
-    // await amplifyDataClient.models.ContentPost.create(post);
-    console.log("[sync-youtube] video prête :", JSON.stringify(post));
+async function upsertVideos(
+  endpoint: string,
+  items: YouTubePlaylistItem[]
+): Promise<void> {
+  console.log(`[sync-youtube] ${items.length} vidéo(s) à synchroniser`);
+
+  // Parallélisation des upserts pour réduire le temps d'exécution Lambda
+  const results = await Promise.allSettled(
+    items.map((item) => upsertVideo(endpoint, item))
+  );
+
+  let created = 0;
+  let updated = 0;
+  let failed = 0;
+
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      if (result.value === "created") created++;
+      else updated++;
+    } else {
+      failed++;
+      console.error("[sync-youtube] Échec upsert :", result.reason);
+    }
+  }
+
+  console.log(
+    `[sync-youtube] Résultat : ${created} créée(s), ${updated} mise(s) à jour, ${failed} échec(s)`
+  );
+
+  if (failed > 0) {
+    throw new Error(`${failed} vidéo(s) n'ont pas pu être synchronisée(s)`);
   }
 }
 
-/**
- * Handler principal Lambda
- */
+// ---------------------------------------------------------------------------
+// Lambda handler
+// ---------------------------------------------------------------------------
+
 export const handler: Handler = async (event) => {
   console.log("[sync-youtube] Démarrage de la synchronisation YouTube");
 
   const apiKey = process.env.YOUTUBE_API_KEY;
   const channelId = process.env.YOUTUBE_CHANNEL_ID;
+  const endpoint = process.env.AMPLIFY_DATA_GRAPHQL_ENDPOINT;
 
   if (!apiKey || !channelId) {
     throw new Error(
       "Variables d'environnement manquantes : YOUTUBE_API_KEY et/ou YOUTUBE_CHANNEL_ID"
     );
   }
+  if (!endpoint) {
+    throw new Error(
+      "Variable d'environnement manquante : AMPLIFY_DATA_GRAPHQL_ENDPOINT"
+    );
+  }
 
   try {
-    // 1. Playlist uploads
     const uploadsPlaylistId = await getUploadsPlaylistId(apiKey, channelId);
     console.log(`[sync-youtube] Playlist uploads : ${uploadsPlaylistId}`);
 
-    // 2. Toutes les vidéos
     const items = await fetchAllPlaylistItems(apiKey, uploadsPlaylistId);
-
-    // 3. Upsert
-    await upsertVideos(items);
+    await upsertVideos(endpoint, items);
 
     return {
       statusCode: 200,

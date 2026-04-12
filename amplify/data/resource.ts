@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { syncYoutube } from "../functions/sync-youtube/resource";
 
 /**
  * Modèle ContentPost — source unique de vérité pour les vidéos YouTube
@@ -6,7 +7,7 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
  *
  * Champs :
  *  - source        : identifiant de la plateforme ("youtube", "soundcloud", etc.)
- *  - externalId    : ID unique de la vidéo/track côté plateforme
+ *  - externalId    : ID unique de la vidéo/track côté plateforme — clé métier pour l'upsert
  *  - title         : titre de la vidéo
  *  - description   : description courte
  *  - url           : lien direct vers la vidéo
@@ -14,6 +15,10 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
  *  - publishedAt   : date de publication (ISO 8601)
  *  - status        : "published" | "draft" | "hidden"
  *  - rawJson       : payload brut de l'API (pour debug et évolution)
+ *
+ * Authorization :
+ *  - Lecture publique via API Key
+ *  - Écriture (create/update/delete) réservée à la Lambda syncYoutube via IAM
  */
 const schema = a.schema({
   ContentPost: a
@@ -28,9 +33,10 @@ const schema = a.schema({
       status: a.enum(["published", "draft", "hidden"]),
       rawJson: a.string(),
     })
+    .identifier(["externalId"])
     .authorization((allow) => [
-      allow.publicApiKey().to(["read"]),
-      allow.authenticated().to(["create", "read", "update", "delete"]),
+      allow.publicApiKey().to(["read", "list"]),
+      allow.resource(syncYoutube).to(["create", "update", "delete"]),
     ]),
 });
 
@@ -41,7 +47,8 @@ export const data = defineData({
   authorizationModes: {
     defaultAuthorizationMode: "apiKey",
     apiKeyAuthorizationMode: {
-      expiresInDays: 365,
+      // Durée réduite pour limiter l'impact d'une fuite et favoriser la rotation
+      expiresInDays: 30,
     },
   },
 });
