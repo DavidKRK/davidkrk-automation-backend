@@ -100,7 +100,15 @@ export const handler: Handler = async () => {
           snippet?.thumbnails?.high?.url ??
           snippet?.thumbnails?.default?.url ??
           "",
-        description: (snippet?.description ?? "").substring(0, 500),
+        description: (() => {
+          const raw = snippet?.description ?? "";
+          if (raw.length > 500) {
+            console.warn(
+              `[sync-youtube] Description tronquée pour ${videoId} : ${raw.length} → 500 chars`
+            );
+          }
+          return raw.substring(0, 500);
+        })(),
         status: "published",
         rawJson: JSON.stringify(snippet),
         createdAt: new Date().toISOString(),
