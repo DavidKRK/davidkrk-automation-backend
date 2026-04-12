@@ -21,10 +21,21 @@ const MAX_DESCRIPTION_LENGTH = 500;
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+
+  if (!value) {
+    console.error(`[sync-youtube] Variable d'environnement requise manquante : ${name}.`);
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+
+  return value;
+}
+
 // Le nom de la table DynamoDB est injecté automatiquement par Amplify Gen 2
 // via la variable d'environnement générée lors du déploiement.
 // Format : <appId>-<branchName>-ContentPost-<hash>
-const TABLE_NAME = process.env.CONTENT_POST_TABLE_NAME ?? "ContentPost";
+const TABLE_NAME = getRequiredEnv("CONTENT_POST_TABLE_NAME");
 
 export const handler: Handler = async () => {
   const API_KEY = process.env.YOUTUBE_API_KEY;
