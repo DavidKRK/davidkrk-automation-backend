@@ -28,11 +28,13 @@ const schema = a.schema({
       /** JSON brut de la réponse API (pour debug / enrichissement futur) */
       rawJson: a.string(),
     })
+    .secondaryIndexes((index) => [
+      // Permet à la Lambda de vérifier l'existence d'une vidéo par (source, externalId)
+      index("source").sortKeys(["externalId"]).name("byExternalId"),
+    ])
     .authorization((allow) => [
       // Lecture publique via API Key (ton site front)
       allow.publicApiKey().to(["read", "list"]),
-      // La Lambda sync-youtube peut tout faire via IAM
-      allow.authenticated().to(["create", "update", "delete"]),
     ]),
 });
 
