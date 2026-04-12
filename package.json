@@ -1,13 +1,16 @@
 {
-  "name": "amplify-backend-app-template",
+  "name": "davidkrk-automation-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend automatisation davidkrk.com — synchro YouTube, SoundCloud, events",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "sandbox": "ampx sandbox",
+    "sandbox:profile": "ampx sandbox --profile",
+    "generate:graphql-client-code": "ampx generate graphql-client-code --format modelgen",
+    "test": "echo \"No tests yet\" && exit 0"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["amplify", "aws", "youtube", "automation", "davidkrk"],
+  "author": "DavidKRK",
   "license": "ISC",
   "devDependencies": {
     "@aws-amplify/backend": "^1.5.0",

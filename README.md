@@ -1,49 +1,71 @@
-## AWS Amplify Backend-Only Starter Template
+# davidkrk-automation-backend
 
-This repository provides a streamlined process for building backend-only applications using AWS Amplify. Whether you're new to Amplify or a seasoned developer, this repository aims to simplify the setup and deployment of your backend infrastructure with pre-configured AWS services like Cognito, AppSync, and DynamoDB.
+Backend automatisation de [davidkrk.com](https://davidkrk.com) — propulsé par **AWS Amplify Gen 2**.
 
-## Features
+## V1.0 — YouTube Sync
 
-- **Authentication**: Setup with Amazon Cognito for secure user authentication.
-- **API**: Ready-to-use GraphQL endpoint with AWS AppSync.
-- **Database**: Real-time database powered by Amazon DynamoDB.
+La V1.0 synchronise automatiquement les vidéos YouTube de la chaîne vers DynamoDB via AppSync GraphQL.
 
-## Deploying to AWS
+### Architecture
 
-For detailed instructions on deploying your application, refer to the [deployment section](vue/deploy-and-host/fullstack-branching/mono-and-multi-repos/#deploy-the-backend-app) of our documentation.
-
-## Getting Started
-
-1. Clone this repository to your local machine:
-
-```bash
-git clone https://github.com/your-username/amplify-backend-template.git
+```
+YouTube Data API v3
+        │
+        ▼
+  Lambda sync-youtube  (planifiée toutes les 6h)
+        │  channels.list → playlistItems.list → videos.list
+        ▼
+  AppSync GraphQL API
+        │  upsert YoutubeVideo (idempotent sur externalId)
+        ▼
+  DynamoDB
+        │
+        ▼
+  davidkrk.com  (lecture publique via API Key)
 ```
 
-2. Navigate to the project directory:
+### Modèle de données
+
+| Champ | Type | Description |
+|---|---|---|
+| `externalId` | String | ID YouTube de la vidéo |
+| `title` | String | Titre |
+| `description` | String | 256 premiers caractères |
+| `publishedAt` | String | Date ISO-8601 |
+| `thumbnailUrl` | String | URL miniature HQ |
+| `videoUrl` | String | `https://youtu.be/<id>` |
+| `viewCount` | Int | Vues au moment de la synchro |
+| `likeCount` | Int | Likes au moment de la synchro |
+| `duration` | String | Durée ISO-8601 (ex: PT3M45S) |
+| `syncedAt` | String | Timestamp dernière synchro |
+
+### Variables d'environnement
+
+À configurer dans **Amplify Console → Environment variables** :
+
+| Variable | Description |
+|---|---|
+| `YOUTUBE_API_KEY` | Clé API Google Cloud (YouTube Data v3) |
+| `YOUTUBE_CHANNEL_ID` | ID de ta chaîne YouTube (ex: `UCxxxxxxxx`) |
+
+Les variables `AMPLIFY_DATA_GRAPHQL_ENDPOINT` et `AMPLIFY_DATA_API_KEY` sont **injectées automatiquement** par Amplify Gen 2 dans la Lambda.
+
+### Démarrage local (sandbox)
 
 ```bash
-cd amplify-backend-only-app
-```
-
-3. Install dependencies: 
-
-```bash
+# 1. Installe les dépendances
 npm install
+
+# 2. Lance le sandbox Amplify (déploie en local sur ton compte AWS)
+npx ampx sandbox
+
+# 3. Génère le client GraphQL pour le frontend
+npm run generate:graphql-client-code
 ```
 
-4. Run the development server:
+### Roadmap
 
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the app in action.
-
-## Security
-
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
-
-## License
-
-This library is licensed under the MIT-0 License. See the LICENSE file.
+- **V1.1** — SoundCloud sync (dernières tracks)
+- **V1.2** — Bandcamp sync (releases, albums)
+- **V1.3** — Events sync (RA / Facebook Events)
+- **V2.0** — Dashboard admin pour davidkrk.com
