@@ -1,71 +1,52 @@
 # davidkrk-automation-backend
 
-Backend automatisation de [davidkrk.com](https://davidkrk.com) — propulsé par **AWS Amplify Gen 2**.
+Backend AWS Amplify Gen 2 pour [davidkrk.com](https://davidkrk.com).
 
-## V1.0 — YouTube Sync
+Ce backend automatise la récupération et la diffusion des contenus de David KRK
+(DJ, producteur, Saint-Jean-de-Luz) depuis YouTube et les plateformes musicales.
 
-La V1.0 synchronise automatiquement les vidéos YouTube de la chaîne vers DynamoDB via AppSync GraphQL.
-
-### Architecture
+## Architecture V1.0
 
 ```
-YouTube Data API v3
-        │
-        ▼
-  Lambda sync-youtube  (planifiée toutes les 6h)
-        │  channels.list → playlistItems.list → videos.list
-        ▼
-  AppSync GraphQL API
-        │  upsert YoutubeVideo (idempotent sur externalId)
-        ▼
-  DynamoDB
-        │
-        ▼
-  davidkrk.com  (lecture publique via API Key)
+amplify/
+├── auth/                        — Cognito (authentification admin)
+├── data/
+│   └── resource.ts              — Modèle ContentPost (DynamoDB via AppSync)
+├── functions/
+│   └── sync-youtube/
+│       ├── resource.ts          — Définition de la fonction Lambda planifiée
+│       └── handler.ts           — Logique de synchro YouTube Data API v3
+└── backend.ts                   — Point d'entrée Amplify
 ```
 
-### Modèle de données
+## Flux de synchronisation YouTube
 
-| Champ | Type | Description |
-|---|---|---|
-| `externalId` | String | ID YouTube de la vidéo |
-| `title` | String | Titre |
-| `description` | String | 256 premiers caractères |
-| `publishedAt` | String | Date ISO-8601 |
-| `thumbnailUrl` | String | URL miniature HQ |
-| `videoUrl` | String | `https://youtu.be/<id>` |
-| `viewCount` | Int | Vues au moment de la synchro |
-| `likeCount` | Int | Likes au moment de la synchro |
-| `duration` | String | Durée ISO-8601 (ex: PT3M45S) |
-| `syncedAt` | String | Timestamp dernière synchro |
+1. La fonction `sync-youtube` est déclenchée **toutes les 6 heures** (cron Amplify).
+2. Elle appelle `channels.list` pour récupérer l'ID de la playlist `uploads`.
+3. Elle lit les vidéos via `playlistItems.list` (1 unité de quota — économique).
+4. Chaque vidéo est upsertée dans le modèle **ContentPost** (DynamoDB).
+5. Le site `davidkrk.com` lit les posts via l'API AppSync (clé publique en lecture seule).
 
-### Variables d'environnement
+## Variables d'environnement à configurer
 
-À configurer dans **Amplify Console → Environment variables** :
+Dans **Amplify Console → ton environnement → Environment variables** :
 
-| Variable | Description |
-|---|---|
-| `YOUTUBE_API_KEY` | Clé API Google Cloud (YouTube Data v3) |
-| `YOUTUBE_CHANNEL_ID` | ID de ta chaîne YouTube (ex: `UCxxxxxxxx`) |
+| Variable             | Description                              |
+|----------------------|------------------------------------------|
+| `YOUTUBE_API_KEY`    | Clé API Google / YouTube Data API v3     |
+| `YOUTUBE_CHANNEL_ID` | ID de ta chaîne YouTube (UCxxxxxxxx…)    |
 
-Les variables `AMPLIFY_DATA_GRAPHQL_ENDPOINT` et `AMPLIFY_DATA_API_KEY` sont **injectées automatiquement** par Amplify Gen 2 dans la Lambda.
+## Roadmap
 
-### Démarrage local (sandbox)
+- **V1.0** ✅ YouTube — modèle ContentPost + Lambda planifiée
+- **V1.1** — Connexion réelle DynamoDB (upsert via client Amplify Data)
+- **V1.2** — SoundCloud / Mixcloud
+- **V1.3** — Endpoint public REST pour le site
 
-```bash
-# 1. Installe les dépendances
-npm install
+## Stack technique
 
-# 2. Lance le sandbox Amplify (déploie en local sur ton compte AWS)
-npx ampx sandbox
-
-# 3. Génère le client GraphQL pour le frontend
-npm run generate:graphql-client-code
-```
-
-### Roadmap
-
-- **V1.1** — SoundCloud sync (dernières tracks)
-- **V1.2** — Bandcamp sync (releases, albums)
-- **V1.3** — Events sync (RA / Facebook Events)
-- **V2.0** — Dashboard admin pour davidkrk.com
+- AWS Amplify Gen 2
+- TypeScript
+- AWS Lambda (Node.js 20)
+- DynamoDB (via AppSync)
+- YouTube Data API v3

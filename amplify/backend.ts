@@ -1,17 +1,17 @@
 import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
-import { syncYoutube } from './functions/sync-youtube/resource';
+import { syncYoutubeFunction } from './functions/sync-youtube/resource';
 
 /**
- * Backend V1.0 — davidkrk-automation-backend
- * Ressources actives :
- *   - auth        : Cognito User Pool (Amplify default)
- *   - data        : AppSync + DynamoDB (modèle YoutubeVideo)
- *   - syncYoutube : Lambda planifiée toutes les 6h (YouTube Data API v3)
+ * Backend DavidKRK — V1.0 YouTube
+ * Modules actifs :
+ *   - auth     : Cognito (utilisateur admin)
+ *   - data     : DynamoDB via AppSync (modèle ContentPost)
+ *   - syncYoutubeFunction : Lambda planifiée toutes les 6h
  */
 defineBackend({
   auth,
   data,
-  syncYoutube,
+  syncYoutubeFunction,
 });

@@ -1,39 +1,36 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 /**
- * Schéma V1.0 — YoutubeVideo
- * Stocke les vidéos synchronisées depuis YouTube Data API v3.
- * Accès public en lecture via API Key (site davidkrk.com).
+ * Modèle ContentPost — source unique de vérité pour les vidéos YouTube
+ * (et autres sources sociales à venir : SoundCloud, Mixcloud…)
+ *
+ * Champs :
+ *  - source        : identifiant de la plateforme ("youtube", "soundcloud", etc.)
+ *  - externalId    : ID unique de la vidéo/track côté plateforme
+ *  - title         : titre de la vidéo
+ *  - description   : description courte
+ *  - url           : lien direct vers la vidéo
+ *  - thumbnailUrl  : URL de la miniature
+ *  - publishedAt   : date de publication (ISO 8601)
+ *  - status        : "published" | "draft" | "hidden"
+ *  - rawJson       : payload brut de l'API (pour debug et évolution)
  */
 const schema = a.schema({
-  YoutubeVideo: a
+  ContentPost: a
     .model({
-      /** ID YouTube de la vidéo (ex: dQw4w9WgXcQ) — clé métier pour l'upsert */
+      source: a.string().required(),
       externalId: a.string().required(),
-      /** Titre de la vidéo */
       title: a.string().required(),
-      /** Description courte (256 premiers caractères) */
       description: a.string(),
-      /** Date de publication ISO-8601 */
-      publishedAt: a.string().required(),
-      /** URL de la miniature haute qualité (hqdefault) */
+      url: a.string().required(),
       thumbnailUrl: a.string(),
-      /** URL publique de la vidéo https://youtu.be/<externalId> */
-      videoUrl: a.string().required(),
-      /** Nombre de vues au moment de la synchro */
-      viewCount: a.integer(),
-      /** Nombre de likes au moment de la synchro */
-      likeCount: a.integer(),
-      /** Durée ISO-8601 (ex: PT3M45S) */
-      duration: a.string(),
-      /** Timestamp ISO-8601 de la dernière synchro */
-      syncedAt: a.string().required(),
+      publishedAt: a.string(),
+      status: a.enum(["published", "draft", "hidden"]),
+      rawJson: a.string(),
     })
     .authorization((allow) => [
-      // Lecture publique via API Key (frontend davidkrk.com)
-      allow.publicApiKey().to(["read", "list"]),
-      // Écriture réservée à la fonction Lambda sync-youtube (IAM)
-      allow.resource(a.ref("syncYoutube")).to(["create", "update", "delete"]),
+      allow.publicApiKey().to(["read"]),
+      allow.authenticated().to(["create", "read", "update", "delete"]),
     ]),
 });
 
