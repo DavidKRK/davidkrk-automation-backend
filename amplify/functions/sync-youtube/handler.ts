@@ -17,6 +17,7 @@ import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-d
  */
 
 const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
+const MAX_DESCRIPTION_LENGTH = 500;
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
@@ -100,7 +101,15 @@ export const handler: Handler = async () => {
           snippet?.thumbnails?.high?.url ??
           snippet?.thumbnails?.default?.url ??
           "",
-        description: (snippet?.description ?? "").substring(0, 500),
+        description: (() => {
+          const raw = snippet?.description ?? "";
+          if (raw.length > MAX_DESCRIPTION_LENGTH) {
+            console.warn(
+              `[sync-youtube] Description tronquée pour ${videoId} : ${raw.length} → ${MAX_DESCRIPTION_LENGTH} caractères`
+            );
+          }
+          return raw.substring(0, MAX_DESCRIPTION_LENGTH);
+        })(),
         status: "published",
         rawJson: JSON.stringify(snippet),
         createdAt: new Date().toISOString(),

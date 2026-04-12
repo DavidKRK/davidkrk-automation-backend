@@ -16,8 +16,4 @@ export const syncYoutube = defineFunction({
   entry: "./handler.ts",
   schedule: "every 6h",
   timeoutSeconds: 60,
-  environment: {
-    YOUTUBE_API_KEY: "",        // À remplir dans Amplify Console → Environment variables
-    YOUTUBE_CHANNEL_ID: "",    // À remplir dans Amplify Console → Environment variables
-  },
 });
