@@ -128,9 +128,29 @@ export const handler: Handler = async () => {
         __typename: "ContentPost",
       };
 
-      await dynamo.send(new PutCommand({ TableName: TABLE_NAME, Item: post }));
-      created++;
-      console.log(`[sync-youtube] Ajouté : ${post.title} (${videoId})`);
+      try {
+        await dynamo.send(
+          new PutCommand({
+            TableName: TABLE_NAME,
+            Item: post,
+            ConditionExpression: "attribute_not_exists(id)",
+          })
+        );
+        created++;
+        console.log(`[sync-youtube] Ajouté : ${post.title} (${videoId})`);
+      } catch (err) {
+        if (
+          typeof err === "object" &&
+          err !== null &&
+          "name" in err &&
+          err.name === "ConditionalCheckFailedException"
+        ) {
+          skipped++;
+          console.log(`[sync-youtube] Déjà présente, ignorée : ${post.title} (${videoId})`);
+          continue;
+        }
+        throw err;
+      }
     }
 
     console.log(
