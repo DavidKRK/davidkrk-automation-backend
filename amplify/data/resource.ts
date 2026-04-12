@@ -1,17 +1,39 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
-/*== STEP 1 ===============================================================
-The section below creates a Todo database table with a "content" field. Try
-adding a new "isDone" field as a boolean. The authorization rule below
-specifies that any user authenticated via an API key can "create", "read",
-"update", and "delete" any "Todo" records.
-=========================================================================*/
+/**
+ * Schéma V1.0 — ContentPost
+ * Stocke les vidéos YouTube synchronisées depuis la chaîne DavidKRK.
+ * Authorization : lecture publique via API Key, écriture réservée à la fonction
+ * sync-youtube via IAM (lambdaFunctionAccess sera ajouté dans backend.ts).
+ */
 const schema = a.schema({
-  Todo: a
+  ContentPost: a
     .model({
-      content: a.string(),
+      /** Source du contenu : 'youtube' | 'soundcloud' | 'mixcloud' | ... */
+      source: a.string().required(),
+      /** ID externe de la vidéo/track (ex: YouTube videoId) */
+      externalId: a.string().required(),
+      /** Titre de la vidéo */
+      title: a.string().required(),
+      /** URL publique de la vidéo (ex: https://www.youtube.com/watch?v=...) */
+      url: a.string().required(),
+      /** Date de publication ISO 8601 */
+      publishedAt: a.string().required(),
+      /** URL de la miniature (thumbnail) */
+      thumbnailUrl: a.string(),
+      /** Description courte / extrait */
+      description: a.string(),
+      /** Statut : 'published' | 'draft' | 'archived' */
+      status: a.string().required(),
+      /** JSON brut de la réponse API (pour debug / enrichissement futur) */
+      rawJson: a.string(),
     })
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [
+      // Lecture publique via API Key (ton site front)
+      allow.publicApiKey().to(["read", "list"]),
+      // La Lambda sync-youtube peut tout faire via IAM
+      allow.authenticated().to(["create", "update", "delete"]),
+    ]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -20,38 +42,8 @@ export const data = defineData({
   schema,
   authorizationModes: {
     defaultAuthorizationMode: "apiKey",
-    // API Key is used for a.allow.public() rules
     apiKeyAuthorizationMode: {
-      expiresInDays: 30,
+      expiresInDays: 365,
     },
   },
 });
-
-/*== STEP 2 ===============================================================
-Go to your frontend source code. From your client-side code, generate a
-Data client to make CRUDL requests to your table. (THIS SNIPPET WILL ONLY
-WORK IN THE FRONTEND CODE FILE.)
-
-Using JavaScript or Next.js React Server Components, Middleware, Server 
-Actions or Pages Router? Review how to generate Data clients for those use
-cases: https://docs.amplify.aws/gen2/build-a-backend/data/connect-to-API/
-=========================================================================*/
-
-/*
-"use client"
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-
-const client = generateClient<Schema>() // use this Data client for CRUDL requests
-*/
-
-/*== STEP 3 ===============================================================
-Fetch records from the database and use them in your frontend component.
-(THIS SNIPPET WILL ONLY WORK IN THE FRONTEND CODE FILE.)
-=========================================================================*/
-
-/* For example, in a React component, you can use this snippet in your
-  function's RETURN statement */
-// const { data: todos } = await client.models.Todo.list()
-
-// return <ul>{todos.map(todo => <li key={todo.id}>{todo.content}</li>)}</ul>
