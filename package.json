@@ -23,7 +23,6 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@aws-amplify/backend": "^1.5.0",
     "@smithy/signature-v4": "^3.0.0",
     "@aws-crypto/sha256-js": "^5.0.0",
     "aws-amplify": "^6.15.3"

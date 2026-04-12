@@ -19,6 +19,7 @@ import { URL } from "url";
 
 const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
 const REQUEST_TIMEOUT_MS = 10_000;
+const DESCRIPTION_MAX_LENGTH = 500;
 
 interface YouTubePlaylistItem {
   snippet: {
@@ -239,6 +240,23 @@ async function fetchAllPlaylistItems(
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * truncateDescription — tronque la description à DESCRIPTION_MAX_LENGTH caractères.
+ * Loggue un avertissement si la troncature a eu lieu, pour faciliter le debug.
+ */
+function truncateDescription(description: string, videoId: string): string {
+  if (description.length <= DESCRIPTION_MAX_LENGTH) return description;
+  console.warn(
+    `[sync-youtube] Description tronquée pour videoId=${videoId} : ` +
+    `${description.length} chars → ${DESCRIPTION_MAX_LENGTH} chars`
+  );
+  return description.slice(0, DESCRIPTION_MAX_LENGTH);
+}
+
+// ---------------------------------------------------------------------------
 // Upsert logic
 // ---------------------------------------------------------------------------
 
@@ -254,6 +272,7 @@ async function upsertVideo(
     snippet.thumbnails?.medium?.url ??
     snippet.thumbnails?.default?.url ??
     null;
+  const description = truncateDescription(snippet.description ?? "", videoId);
 
   // Vérifie si la vidéo existe déjà via getContentPost (requête efficace par clé)
   const existing = await appsyncRequest<{
@@ -266,7 +285,7 @@ async function upsertVideo(
       input: {
         externalId: videoId,
         title: snippet.title,
-        description: snippet.description?.slice(0, 500) ?? "",
+        description,
         url: `https://www.youtube.com/watch?v=${videoId}`,
         thumbnailUrl,
         publishedAt: snippet.publishedAt,
@@ -282,7 +301,7 @@ async function upsertVideo(
       source: "youtube",
       externalId: videoId,
       title: snippet.title,
-      description: snippet.description?.slice(0, 500) ?? "",
+      description,
       url: `https://www.youtube.com/watch?v=${videoId}`,
       thumbnailUrl,
       publishedAt: snippet.publishedAt,
