@@ -42,10 +42,10 @@ export const handler: Handler = async () => {
   const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID;
 
   if (!API_KEY || !CHANNEL_ID) {
-    console.error(
-      "[sync-youtube] Variables manquantes : YOUTUBE_API_KEY ou YOUTUBE_CHANNEL_ID non définies."
-    );
-    return { statusCode: 500, body: "Configuration incomplète." };
+    const message =
+      "[sync-youtube] Variables manquantes : YOUTUBE_API_KEY ou YOUTUBE_CHANNEL_ID non définies.";
+    console.error(message);
+    throw new Error(message);
   }
 
   try {
