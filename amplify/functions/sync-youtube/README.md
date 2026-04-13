@@ -25,7 +25,8 @@ Toutes les **6 heures** (configurable dans `resource.ts` → `schedule`).
 2. Créer un projet ou utiliser un projet existant
 3. Activer l'API **YouTube Data API v3**
 4. `APIs & Services → Credentials → Create credentials → API Key`
-5. Restreindre la clé aux IP du Lambda ou à l'API YouTube uniquement
+5. Restreindre la clé à l'API **YouTube Data API v3** au minimum
+6. Ne restreindre par IP que si la Lambda dispose d'une IP sortante fixe explicitement configurée (ex. VPC + NAT/EIP)
 
 ### YOUTUBE_CHANNEL_ID
 1. Aller sur ta chaîne YouTube
