@@ -14,7 +14,7 @@
     "@aws-amplify/backend-cli": "^1.2.9",
     "aws-cdk": "^2.1025.0",
     "aws-cdk-lib": "^2.248.0",
-    "constructs": "^10.3.0",
+    "constructs": "^10.5.0",
     "esbuild": "^0.25.9",
     "tsx": "^4.7.2",
     "typescript": "^5.4.5"
