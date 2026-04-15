@@ -75,7 +75,8 @@ export const data = defineData({
     // Mode par défaut : API Key (lecture publique ContentPost / UserUpload)
     defaultAuthorizationMode: "apiKey",
     apiKeyAuthorizationMode: {
-      expiresInDays: 365,
+      // Durée réduite pour limiter la fenêtre d'exploitation en cas de fuite de clé.
+      expiresInDays: 30,
     },
     // Le mode User Pool (requis pour allow.owner()) est automatiquement activé
     // par Amplify Gen 2 lorsque la ressource auth est déclarée dans defineBackend.
