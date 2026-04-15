@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌍 World Digital Clock — All Time Zones</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      padding: 1.5rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #58a6ff;
+      letter-spacing: 1px;
+    }
+
+    header p {
+      margin-top: 0.4rem;
+      color: #8b949e;
+      font-size: 0.9rem;
+    }
+
+    #count {
+      color: #ffa657;
+      font-weight: 600;
+    }
+
+    .search-bar {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .search-bar input {
+      width: 100%;
+      max-width: 480px;
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      border: 1px solid #30363d;
+      background: #161b22;
+      color: #e6edf3;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-bar input:focus {
+      border-color: #58a6ff;
+    }
+
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 0.75rem;
+      padding: 0.85rem 1rem;
+      transition: border-color 0.2s, transform 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .card:hover {
+      border-color: #58a6ff;
+      transform: translateY(-2px);
+    }
+
+    .card .tz-region {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #58a6ff;
+      font-weight: 600;
+    }
+
+    .card .tz-city {
+      font-size: 0.9rem;
+      color: #c9d1d9;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card .tz-full {
+      font-size: 0.65rem;
+      color: #484f58;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card .tz-time {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      font-variant-numeric: tabular-nums;
+      color: #ffa657;
+      margin-top: 0.2rem;
+    }
+
+    .card .tz-offset {
+      font-size: 0.7rem;
+      color: #8b949e;
+    }
+
+    .hidden { display: none !important; }
+
+    footer {
+      text-align: center;
+      margin-top: 2rem;
+      color: #484f58;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌍 World Digital Clock</h1>
+  <p>Displaying <span id="count">…</span> time zones — updated every second</p>
+</header>
+
+<div class="search-bar">
+  <input type="search" id="filter" placeholder="🔍 Filter by city or region…" autocomplete="off">
+</div>
+
+<div id="grid"></div>
+
+<footer>Powered by the ECMAScript Internationalization API (Intl) &mdash; no external dependencies</footer>
+
+<script>
+  // ---------------------------------------------------------------------------
+  // 1. Build the list of time zones
+  // ---------------------------------------------------------------------------
+
+  // Comprehensive static fallback covering all major regions (~200 zones).
+  // Used when Intl.supportedValuesOf is unavailable.
+  const STATIC_ZONES = [
+    "Africa/Abidjan","Africa/Accra","Africa/Addis_Ababa","Africa/Algiers","Africa/Asmara",
+    "Africa/Bamako","Africa/Bangui","Africa/Banjul","Africa/Bissau","Africa/Blantyre",
+    "Africa/Brazzaville","Africa/Bujumbura","Africa/Cairo","Africa/Casablanca","Africa/Ceuta",
+    "Africa/Conakry","Africa/Dakar","Africa/Dar_es_Salaam","Africa/Djibouti","Africa/Douala",
+    "Africa/El_Aaiun","Africa/Freetown","Africa/Gaborone","Africa/Harare","Africa/Johannesburg",
+    "Africa/Juba","Africa/Kampala","Africa/Khartoum","Africa/Kigali","Africa/Kinshasa",
+    "Africa/Lagos","Africa/Libreville","Africa/Lome","Africa/Luanda","Africa/Lubumbashi",
+    "Africa/Lusaka","Africa/Malabo","Africa/Maputo","Africa/Maseru","Africa/Mbabane",
+    "Africa/Mogadishu","Africa/Monrovia","Africa/Nairobi","Africa/Ndjamena","Africa/Niamey",
+    "Africa/Nouakchott","Africa/Ouagadougou","Africa/Porto-Novo","Africa/Sao_Tome",
+    "Africa/Tripoli","Africa/Tunis","Africa/Windhoek",
+    "America/Adak","America/Anchorage","America/Anguilla","America/Antigua","America/Araguaina",
+    "America/Argentina/Buenos_Aires","America/Argentina/Catamarca","America/Argentina/Cordoba",
+    "America/Argentina/Jujuy","America/Argentina/La_Rioja","America/Argentina/Mendoza",
+    "America/Argentina/Rio_Gallegos","America/Argentina/Salta","America/Argentina/San_Juan",
+    "America/Argentina/San_Luis","America/Argentina/Tucuman","America/Argentina/Ushuaia",
+    "America/Aruba","America/Asuncion","America/Atikokan","America/Bahia","America/Bahia_Banderas",
+    "America/Barbados","America/Belem","America/Belize","America/Blanc-Sablon","America/Boa_Vista",
+    "America/Bogota","America/Boise","America/Cambridge_Bay","America/Campo_Grande",
+    "America/Cancun","America/Caracas","America/Cayenne","America/Cayman","America/Chicago",
+    "America/Chihuahua","America/Costa_Rica","America/Creston","America/Cuiaba","America/Curacao",
+    "America/Danmarkshavn","America/Dawson","America/Dawson_Creek","America/Denver",
+    "America/Detroit","America/Dominica","America/Edmonton","America/Eirunepe","America/El_Salvador",
+    "America/Fort_Nelson","America/Fortaleza","America/Glace_Bay","America/Godthab",
+    "America/Goose_Bay","America/Grand_Turk","America/Grenada","America/Guadeloupe",
+    "America/Guatemala","America/Guayaquil","America/Guyana","America/Halifax","America/Havana",
+    "America/Hermosillo","America/Indiana/Indianapolis","America/Indiana/Knox",
+    "America/Indiana/Marengo","America/Indiana/Petersburg","America/Indiana/Tell_City",
+    "America/Indiana/Vevay","America/Indiana/Vincennes","America/Indiana/Winamac",
+    "America/Inuvik","America/Iqaluit","America/Jamaica","America/Juneau","America/Kentucky/Louisville",
+    "America/Kentucky/Monticello","America/Kralendijk","America/La_Paz","America/Lima",
+    "America/Los_Angeles","America/Lower_Princes","America/Maceio","America/Managua",
+    "America/Manaus","America/Marigot","America/Martinique","America/Matamoros",
+    "America/Mazatlan","America/Menominee","America/Merida","America/Metlakatla",
+    "America/Mexico_City","America/Miquelon","America/Moncton","America/Monterrey",
+    "America/Montevideo","America/Montserrat","America/Nassau","America/New_York",
+    "America/Nipigon","America/Nome","America/Noronha","America/North_Dakota/Beulah",
+    "America/North_Dakota/Center","America/North_Dakota/New_Salem","America/Nuuk",
+    "America/Ojinaga","America/Panama","America/Pangnirtung","America/Paramaribo",
+    "America/Phoenix","America/Port-au-Prince","America/Port_of_Spain","America/Porto_Velho",
+    "America/Puerto_Rico","America/Punta_Arenas","America/Rainy_River","America/Rankin_Inlet",
+    "America/Recife","America/Regina","America/Resolute","America/Rio_Branco",
+    "America/Santarem","America/Santiago","America/Santo_Domingo","America/Sao_Paulo",
+    "America/Scoresbysund","America/Sitka","America/St_Barthelemy","America/St_Johns",
+    "America/St_Kitts","America/St_Lucia","America/St_Thomas","America/St_Vincent",
+    "America/Swift_Current","America/Tegucigalpa","America/Thule","America/Thunder_Bay",
+    "America/Tijuana","America/Toronto","America/Tortola","America/Vancouver","America/Whitehorse",
+    "America/Winnipeg","America/Yakutat","America/Yellowknife",
+    "Antarctica/Casey","Antarctica/Davis","Antarctica/DumontDUrville","Antarctica/Macquarie",
+    "Antarctica/Mawson","Antarctica/McMurdo","Antarctica/Palmer","Antarctica/Rothera",
+    "Antarctica/Syowa","Antarctica/Troll","Antarctica/Vostok",
+    "Arctic/Longyearbyen",
+    "Asia/Aden","Asia/Almaty","Asia/Amman","Asia/Anadyr","Asia/Aqtau","Asia/Aqtobe",
+    "Asia/Ashgabat","Asia/Atyrau","Asia/Baghdad","Asia/Bahrain","Asia/Baku","Asia/Bangkok",
+    "Asia/Barnaul","Asia/Beirut","Asia/Bishkek","Asia/Brunei","Asia/Chita","Asia/Choibalsan",
+    "Asia/Colombo","Asia/Damascus","Asia/Dhaka","Asia/Dili","Asia/Dubai","Asia/Dushanbe",
+    "Asia/Famagusta","Asia/Gaza","Asia/Hebron","Asia/Ho_Chi_Minh","Asia/Hong_Kong",
+    "Asia/Hovd","Asia/Irkutsk","Asia/Jakarta","Asia/Jayapura","Asia/Jerusalem","Asia/Kabul",
+    "Asia/Kamchatka","Asia/Karachi","Asia/Kathmandu","Asia/Khandyga","Asia/Kolkata",
+    "Asia/Krasnoyarsk","Asia/Kuala_Lumpur","Asia/Kuching","Asia/Kuwait","Asia/Macau",
+    "Asia/Magadan","Asia/Makassar","Asia/Manila","Asia/Muscat","Asia/Nicosia","Asia/Novokuznetsk",
+    "Asia/Novosibirsk","Asia/Omsk","Asia/Oral","Asia/Phnom_Penh","Asia/Pontianak",
+    "Asia/Pyongyang","Asia/Qatar","Asia/Qostanay","Asia/Qyzylorda","Asia/Riyadh","Asia/Sakhalin",
+    "Asia/Samarkand","Asia/Seoul","Asia/Shanghai","Asia/Singapore","Asia/Srednekolymsk",
+    "Asia/Taipei","Asia/Tashkent","Asia/Tbilisi","Asia/Tehran","Asia/Thimphu","Asia/Tokyo",
+    "Asia/Tomsk","Asia/Ulaanbaatar","Asia/Urumqi","Asia/Ust-Nera","Asia/Vientiane",
+    "Asia/Vladivostok","Asia/Yakutsk","Asia/Yangon","Asia/Yekaterinburg","Asia/Yerevan",
+    "Atlantic/Azores","Atlantic/Bermuda","Atlantic/Canary","Atlantic/Cape_Verde",
+    "Atlantic/Faroe","Atlantic/Madeira","Atlantic/Reykjavik","Atlantic/South_Georgia",
+    "Atlantic/St_Helena","Atlantic/Stanley",
+    "Australia/Adelaide","Australia/Brisbane","Australia/Broken_Hill","Australia/Darwin",
+    "Australia/Eucla","Australia/Hobart","Australia/Lindeman","Australia/Lord_Howe",
+    "Australia/Melbourne","Australia/Perth","Australia/Sydney",
+    "Europe/Amsterdam","Europe/Andorra","Europe/Astrakhan","Europe/Athens","Europe/Belgrade",
+    "Europe/Berlin","Europe/Bratislava","Europe/Brussels","Europe/Bucharest","Europe/Budapest",
+    "Europe/Busingen","Europe/Chisinau","Europe/Copenhagen","Europe/Dublin","Europe/Gibraltar",
+    "Europe/Guernsey","Europe/Helsinki","Europe/Isle_of_Man","Europe/Istanbul","Europe/Jersey",
+    "Europe/Kaliningrad","Europe/Kiev","Europe/Kirov","Europe/Lisbon","Europe/Ljubljana",
+    "Europe/London","Europe/Luxembourg","Europe/Madrid","Europe/Malta","Europe/Mariehamn",
+    "Europe/Minsk","Europe/Monaco","Europe/Moscow","Europe/Nicosia","Europe/Oslo","Europe/Paris",
+    "Europe/Podgorica","Europe/Prague","Europe/Riga","Europe/Rome","Europe/Samara",
+    "Europe/San_Marino","Europe/Sarajevo","Europe/Saratov","Europe/Simferopol","Europe/Skopje",
+    "Europe/Sofia","Europe/Stockholm","Europe/Tallinn","Europe/Tirane","Europe/Ulyanovsk",
+    "Europe/Uzhgorod","Europe/Vaduz","Europe/Vatican","Europe/Vienna","Europe/Vilnius",
+    "Europe/Volgograd","Europe/Warsaw","Europe/Zagreb","Europe/Zaporozhye","Europe/Zurich",
+    "Indian/Antananarivo","Indian/Chagos","Indian/Christmas","Indian/Cocos","Indian/Comoro",
+    "Indian/Kerguelen","Indian/Mahe","Indian/Maldives","Indian/Mauritius","Indian/Mayotte",
+    "Indian/Reunion",
+    "Pacific/Apia","Pacific/Auckland","Pacific/Bougainville","Pacific/Chatham","Pacific/Chuuk",
+    "Pacific/Easter","Pacific/Efate","Pacific/Enderbury","Pacific/Fakaofo","Pacific/Fiji",
+    "Pacific/Funafuti","Pacific/Galapagos","Pacific/Gambier","Pacific/Guadalcanal","Pacific/Guam",
+    "Pacific/Honolulu","Pacific/Kiritimati","Pacific/Kosrae","Pacific/Kwajalein","Pacific/Majuro",
+    "Pacific/Marquesas","Pacific/Midway","Pacific/Nauru","Pacific/Niue","Pacific/Norfolk",
+    "Pacific/Noumea","Pacific/Pago_Pago","Pacific/Palau","Pacific/Pitcairn","Pacific/Pohnpei",
+    "Pacific/Port_Moresby","Pacific/Rarotonga","Pacific/Saipan","Pacific/Tahiti",
+    "Pacific/Tarawa","Pacific/Tongatapu","Pacific/Wake","Pacific/Wallis",
+    "UTC"
+  ];
+
+  // ---------------------------------------------------------------------------
+  // 2. Get supported zones (dynamic API preferred, fallback to static list)
+  // ---------------------------------------------------------------------------
+  function getTimeZones() {
+    try {
+      if (typeof Intl.supportedValuesOf === 'function') {
+        const zones = Intl.supportedValuesOf('timeZone');
+        if (zones && zones.length > 0) return zones;
+      }
+    } catch (_) { /* ignore */ }
+    return STATIC_ZONES;
+  }
+
+  // ---------------------------------------------------------------------------
+  // 3. Parse a timezone string into { region, city, fullName }
+  // ---------------------------------------------------------------------------
+  function parseTZ(tz) {
+    const parts = tz.split('/');
+    const region = parts[0].replace(/_/g, ' ');
+    const city   = (parts[parts.length - 1] || tz).replace(/_/g, ' ');
+    return { region, city, fullName: tz };
+  }
+
+  // ---------------------------------------------------------------------------
+  // 4. Get the current UTC offset string for a timezone (e.g. "UTC+2:00")
+  // ---------------------------------------------------------------------------
+  const _offsetFmt = {};
+  function getOffset(tz) {
+    if (!_offsetFmt[tz]) {
+      try {
+        _offsetFmt[tz] = new Intl.DateTimeFormat('en', {
+          timeZone: tz,
+          timeZoneName: 'shortOffset'
+        });
+      } catch (_) { return ''; }
+    }
+    try {
+      const parts = _offsetFmt[tz].formatToParts(new Date());
+      const off = parts.find(p => p.type === 'timeZoneName');
+      return off ? off.value : '';
+    } catch (_) { return ''; }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 5. Format time HH:MM:SS in 24h for a given timezone
+  // ---------------------------------------------------------------------------
+  const _timeFmt = {};
+  function formatTime(tz, date) {
+    if (!_timeFmt[tz]) {
+      try {
+        _timeFmt[tz] = new Intl.DateTimeFormat('en-GB', {
+          timeZone: tz,
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+          hour12: false
+        });
+      } catch (_) { return '--:--:--'; }
+    }
+    try {
+      return _timeFmt[tz].format(date);
+    } catch (_) { return '--:--:--'; }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 6. Build the DOM cards once
+  // ---------------------------------------------------------------------------
+  const ZONES = getTimeZones();
+  const grid  = document.getElementById('grid');
+  const countEl = document.getElementById('count');
+  countEl.textContent = ZONES.length;
+
+  // Map from tz string → { timeEl, card }
+  const timeEls = {};
+
+  ZONES.forEach(tz => {
+    const { region, city, fullName } = parseTZ(tz);
+    const offset = getOffset(tz);
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.search = (region + ' ' + city + ' ' + fullName).toLowerCase();
+
+    card.innerHTML =
+      '<div class="tz-region"></div>' +
+      '<div class="tz-city"></div>' +
+      '<div class="tz-full"></div>' +
+      '<div class="tz-time">--:--:--</div>' +
+      '<div class="tz-offset"></div>';
+
+    card.querySelector('.tz-region').textContent = region;
+    card.querySelector('.tz-city').textContent   = city;
+    card.querySelector('.tz-full').textContent   = fullName;
+    card.querySelector('.tz-offset').textContent = offset;
+
+    timeEls[tz] = { timeEl: card.querySelector('.tz-time'), card };
+    grid.appendChild(card);
+  });
+
+  // ---------------------------------------------------------------------------
+  // 7. Tick — update all times every second
+  // ---------------------------------------------------------------------------
+  function tick() {
+    const now = new Date();
+    ZONES.forEach(tz => {
+      const entry = timeEls[tz];
+      if (entry && !entry.card.classList.contains('hidden')) {
+        entry.timeEl.textContent = formatTime(tz, now);
+      }
+    });
+  }
+
+  tick();
+  setInterval(tick, 1000);
+
+  // ---------------------------------------------------------------------------
+  // 8. Live search / filter (debounced for performance)
+  // ---------------------------------------------------------------------------
+  function debounce(fn, ms) {
+    let t;
+    return function () { clearTimeout(t); t = setTimeout(() => fn.apply(this, arguments), ms); };
+  }
+
+  document.getElementById('filter').addEventListener('input', debounce(function () {
+    const q = this.value.trim().toLowerCase();
+    let visible = 0;
+    grid.querySelectorAll('.card').forEach(card => {
+      const match = !q || card.dataset.search.includes(q);
+      card.classList.toggle('hidden', !match);
+      if (match) visible++;
+    });
+    countEl.textContent = q ? visible + ' / ' + ZONES.length : ZONES.length;
+  }, 150));
+</script>
+
+</body>
+</html>
