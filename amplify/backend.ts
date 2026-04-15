@@ -1,19 +1,22 @@
 import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
+import { storage } from './storage/resource';
 import { syncYoutube } from './functions/sync-youtube/resource';
 
 /**
- * Backend V1.0 — DavidKRK Automation
+ * Backend V1.1 — DavidKRK Automation
  *
  * Ressources actives :
  *  - auth        : Cognito User Pool (généré par le template)
- *  - data        : AppSync + DynamoDB (modèle ContentPost)
+ *  - data        : AppSync + DynamoDB (modèles ContentPost et UserUpload)
+ *  - storage     : S3 bucket pour les uploads utilisateur
  *  - syncYoutube : Lambda planifiée toutes les 6h (YouTube Data API v3)
  */
 const backend = defineBackend({
   auth,
   data,
+  storage,
   syncYoutube,
 });
 

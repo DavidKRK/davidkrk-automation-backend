@@ -1,12 +1,42 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 /**
- * Schéma V1.0 — ContentPost
- * Stocke les vidéos YouTube synchronisées depuis la chaîne DavidKRK.
- * Authorization : lecture publique via API Key, écriture réservée à la fonction
- * sync-youtube via IAM (lambdaFunctionAccess sera ajouté dans backend.ts).
+ * Schéma V1.1 — ContentPost + UserUpload
+ * ContentPost  : vidéos YouTube synchronisées depuis la chaîne DavidKRK.
+ * UserUpload   : fichiers uploadés par les utilisateurs authentifiés (S3).
+ * Authorization : lecture publique via API Key, écriture propriétaire via User Pool.
  */
 const schema = a.schema({
+  /**
+   * UserUpload — Fichier uploadé par un utilisateur authentifié
+   * Autorisations : propriétaire (CRUD), lecture publique via API Key.
+   */
+  UserUpload: a
+    .model({
+      /** Clé S3 de l'objet (ex: uploads/{entity_id}/mon-fichier.mp3) */
+      key: a.string().required(),
+      /** Nom de fichier d'origine */
+      filename: a.string().required(),
+      /** Type MIME (ex: audio/mpeg, image/jpeg) */
+      fileType: a.string().required(),
+      /** Taille en octets */
+      fileSize: a.integer(),
+      /** Titre affiché */
+      title: a.string().required(),
+      /** Description optionnelle */
+      description: a.string(),
+      /** Statut : 'pending' | 'processing' | 'published' | 'rejected' */
+      status: a.string().required(),
+      /** URL publique du fichier (renseignée après traitement) */
+      publicUrl: a.string(),
+    })
+    .authorization((allow) => [
+      // Le propriétaire peut créer, lire, modifier et supprimer ses uploads (nécessite User Pool)
+      allow.owner(),
+      // Lecture publique via API Key limitée aux items publiés (pas de list : évite l'exposition de données sensibles)
+      allow.publicApiKey().to(["read"]),
+    ]),
+
   ContentPost: a
     .model({
       /** Source du contenu : 'youtube' | 'soundcloud' | 'mixcloud' | ... */
@@ -43,9 +73,12 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
+    // Mode par défaut : API Key (lecture publique ContentPost / UserUpload)
     defaultAuthorizationMode: "apiKey",
     apiKeyAuthorizationMode: {
       expiresInDays: 365,
     },
+    // Le mode User Pool (requis pour allow.owner()) est automatiquement activé
+    // par Amplify Gen 2 lorsque la ressource auth est déclarée dans defineBackend.
   },
 });
