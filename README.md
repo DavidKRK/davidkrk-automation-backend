@@ -1,7 +1,6 @@
 # davidkrk-automation-backend
 
-Backend AWS Amplify Gen 2 pour l'automatisation de la chaîne **DavidKRK** —
-synchronisation YouTube, gestion des uploads utilisateurs et API publique.
+Backend AWS Amplify Gen 2 pour l'automatisation de la chaîne **DavidKRK** — synchronisation YouTube, gestion des uploads utilisateurs et API publique.
 
 ## Architecture
 
