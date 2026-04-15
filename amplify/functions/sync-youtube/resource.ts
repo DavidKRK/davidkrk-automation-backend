@@ -17,6 +17,6 @@ import { defineFunction } from "@aws-amplify/backend";
 export const syncYoutubeFunction = defineFunction({
   name: "sync-youtube",
   // Déclenchement automatique toutes les 6 heures
-  schedule: "rate(6 hours)",
+  schedule: "every 6 hours",
   entry: "./handler.ts",
 });
