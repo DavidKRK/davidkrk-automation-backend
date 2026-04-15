@@ -8,8 +8,8 @@ import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
  * Flux :
  * 1. Récupère l'ID de la playlist 'uploads' de la chaîne via channels.list
  * 2. Lit les 50 dernières vidéos via playlistItems.list (coût quota : 1 unité/appel)
- * 3. Pour chaque vidéo, upsert idempotent dans la table ContentPost DynamoDB
- *    (clé composite source+externalId — ConditionExpression empêche les doublons)
+ * 3. Pour chaque vidéo, insertion idempotente (create-if-not-exists) dans la table ContentPost DynamoDB
+ *    (clé composite source+externalId — ConditionExpression empêche les doublons, sans mettre à jour les éléments existants)
  *
  * Quota YouTube Data API v3 :
  *   - channels.list     : 1 unité
