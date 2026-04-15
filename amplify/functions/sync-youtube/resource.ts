@@ -5,7 +5,8 @@ import { defineFunction } from "@aws-amplify/backend";
  *
  * Déclenchée automatiquement toutes les 6 heures.
  * Elle appelle l'API YouTube Data v3 pour récupérer les dernières vidéos
- * de la chaîne DavidKRK et les upsert dans le modèle ContentPost.
+ * de la chaîne DavidKRK et les insère dans le modèle ContentPost
+ * uniquement si elles n'existent pas déjà (insertion idempotente, sans mise à jour).
  *
  * Variables d'environnement requises dans Amplify Console :
  *   YOUTUBE_API_KEY      — clé API Google Cloud (YouTube Data API v3)
