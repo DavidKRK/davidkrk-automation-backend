@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "sandbox": "ampx sandbox",
-    "sandbox:profile": "ampx sandbox --profile",
+    "sandbox:profile": "node -e \"const { spawnSync } = require('node:child_process'); const profile = process.env.AMPX_PROFILE; if (!profile) { console.error('Missing AMPX_PROFILE. Usage: AMPX_PROFILE=<profile> npm run sandbox:profile'); process.exit(1); } const command = process.platform === 'win32' ? 'ampx.cmd' : 'ampx'; const result = spawnSync(command, ['sandbox', '--profile', profile], { stdio: 'inherit' }); process.exit(result.status ?? 1);\"",
     "generate:graphql-client-code": "ampx generate graphql-client-code --format modelgen",
     "test": "echo \"No tests yet\" && exit 0"
   },
