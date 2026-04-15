@@ -41,7 +41,7 @@ const schema = a.schema({
     .model({
       /** Source du contenu : 'youtube' | 'soundcloud' | 'mixcloud' | ... */
       source: a.string().required(),
-      /** ID externe de la vidéo/track (ex: YouTube videoId) */
+      /** ID externe de la vidéo/track (ex: YouTube videoId) — forme la clé composite avec source */
       externalId: a.string().required(),
       /** Titre de la vidéo */
       title: a.string().required(),
@@ -58,10 +58,9 @@ const schema = a.schema({
       /** JSON brut de la réponse API (pour debug / enrichissement futur) */
       rawJson: a.string(),
     })
-    .secondaryIndexes((index) => [
-      // Permet à la Lambda de vérifier l'existence d'une vidéo par (source, externalId)
-      index("source").sortKeys(["externalId"]).name("byExternalId"),
-    ])
+    // Clé composite (source, externalId) — garantit l'unicité au niveau DynamoDB
+    // et permet à la Lambda de faire un upsert idempotent sans index secondaire.
+    .identifier(["source", "externalId"])
     .authorization((allow) => [
       // Lecture publique via API Key (ton site front)
       allow.publicApiKey().to(["read", "list"]),

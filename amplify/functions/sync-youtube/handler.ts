@@ -1,6 +1,6 @@
 import type { Handler } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 
 /**
  * Handler de la fonction sync-youtube
@@ -8,7 +8,8 @@ import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-d
  * Flux :
  * 1. Récupère l'ID de la playlist 'uploads' de la chaîne via channels.list
  * 2. Lit les 50 dernières vidéos via playlistItems.list (coût quota : 1 unité/appel)
- * 3. Pour chaque vidéo, upsert dans la table ContentPost DynamoDB si elle n'existe pas encore
+ * 3. Pour chaque vidéo, upsert idempotent dans la table ContentPost DynamoDB
+ *    (clé composite source+externalId — ConditionExpression empêche les doublons)
  *
  * Quota YouTube Data API v3 :
  *   - channels.list     : 1 unité
@@ -72,25 +73,8 @@ export const handler: Handler = async () => {
       const videoId = snippet?.resourceId?.videoId;
       if (!videoId) continue;
 
-      // Vérifie si la vidéo existe déjà (index externalId + source)
-      const existing = await dynamo.send(
-        new QueryCommand({
-          TableName: TABLE_NAME,
-          IndexName: "byExternalId",
-          KeyConditionExpression: "#src = :src AND externalId = :vid",
-          ExpressionAttributeNames: { "#src": "source" },
-          ExpressionAttributeValues: { ":src": "youtube", ":vid": videoId },
-          Limit: 1,
-        })
-      );
-
-      if (existing.Count && existing.Count > 0) {
-        skipped++;
-        continue;
-      }
-
       const post = {
-        id: `youtube_${videoId}`,
+        // Clé composite DynamoDB : source (partition) + externalId (sort)
         source: "youtube",
         externalId: videoId,
         title: snippet?.title ?? "Sans titre",
@@ -122,7 +106,9 @@ export const handler: Handler = async () => {
           new PutCommand({
             TableName: TABLE_NAME,
             Item: post,
-            ConditionExpression: "attribute_not_exists(id)",
+            // La clé composite (source, externalId) garantit l'unicité —
+            // cette condition empêche d'écraser un enregistrement existant.
+            ConditionExpression: "attribute_not_exists(source)",
           })
         );
         created++;
