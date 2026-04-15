@@ -1,12 +1,42 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 /**
- * Schéma V1.0 — ContentPost
- * Stocke les vidéos YouTube synchronisées depuis la chaîne DavidKRK.
- * Authorization : lecture publique via API Key, écriture réservée à la fonction
- * sync-youtube via IAM (lambdaFunctionAccess sera ajouté dans backend.ts).
+ * Schéma V1.1 — ContentPost + UserUpload
+ * ContentPost  : vidéos YouTube synchronisées depuis la chaîne DavidKRK.
+ * UserUpload   : fichiers uploadés par les utilisateurs authentifiés (S3).
+ * Authorization : lecture publique via API Key, écriture propriétaire via User Pool.
  */
 const schema = a.schema({
+  /**
+   * UserUpload — Fichier uploadé par un utilisateur authentifié
+   * Autorisations : propriétaire (CRUD), lecture publique via API Key.
+   */
+  UserUpload: a
+    .model({
+      /** Clé S3 de l'objet (ex: uploads/{userId}/mon-fichier.mp3) */
+      key: a.string().required(),
+      /** Nom de fichier d'origine */
+      filename: a.string().required(),
+      /** Type MIME (ex: audio/mpeg, image/jpeg) */
+      fileType: a.string().required(),
+      /** Taille en octets */
+      fileSize: a.integer(),
+      /** Titre affiché */
+      title: a.string().required(),
+      /** Description optionnelle */
+      description: a.string(),
+      /** Statut : 'pending' | 'processing' | 'published' | 'rejected' */
+      status: a.string().required(),
+      /** URL publique du fichier (renseignée après traitement) */
+      publicUrl: a.string(),
+    })
+    .authorization((allow) => [
+      // Le propriétaire peut créer, lire, modifier et supprimer ses uploads
+      allow.owner(),
+      // Lecture publique via API Key (site front)
+      allow.publicApiKey().to(["read", "list"]),
+    ]),
+
   ContentPost: a
     .model({
       /** Source du contenu : 'youtube' | 'soundcloud' | 'mixcloud' | ... */
