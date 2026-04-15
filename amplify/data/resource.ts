@@ -13,7 +13,7 @@ const schema = a.schema({
    */
   UserUpload: a
     .model({
-      /** Clé S3 de l'objet (ex: uploads/{userId}/mon-fichier.mp3) */
+      /** Clé S3 de l'objet (ex: uploads/{entity_id}/mon-fichier.mp3) */
       key: a.string().required(),
       /** Nom de fichier d'origine */
       filename: a.string().required(),
