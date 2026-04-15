@@ -1,17 +1,71 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
-/*== STEP 1 ===============================================================
-The section below creates a Todo database table with a "content" field. Try
-adding a new "isDone" field as a boolean. The authorization rule below
-specifies that any user authenticated via an API key can "create", "read",
-"update", and "delete" any "Todo" records.
-=========================================================================*/
+/**
+ * Schéma V1.1 — ContentPost + UserUpload
+ * ContentPost  : vidéos YouTube synchronisées depuis la chaîne DavidKRK.
+ * UserUpload   : fichiers uploadés par les utilisateurs authentifiés (S3).
+ * Authorization : lecture publique via API Key, écriture propriétaire via User Pool.
+ */
 const schema = a.schema({
-  Todo: a
+  /**
+   * UserUpload — Fichier uploadé par un utilisateur authentifié
+   * Autorisations : propriétaire (CRUD), lecture publique via API Key.
+   */
+  UserUpload: a
     .model({
-      content: a.string(),
+      /** Clé S3 de l'objet (ex: uploads/{entity_id}/mon-fichier.mp3) */
+      key: a.string().required(),
+      /** Nom de fichier d'origine */
+      filename: a.string().required(),
+      /** Type MIME (ex: audio/mpeg, image/jpeg) */
+      fileType: a.string().required(),
+      /** Taille en octets */
+      fileSize: a.integer(),
+      /** Titre affiché */
+      title: a.string().required(),
+      /** Description optionnelle */
+      description: a.string(),
+      /** Statut : 'pending' | 'processing' | 'published' | 'rejected' */
+      status: a.string().required(),
+      /** URL publique du fichier (renseignée après traitement) */
+      publicUrl: a.string(),
     })
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [
+      // Le propriétaire peut créer, lire, modifier et supprimer ses uploads (nécessite User Pool)
+      allow.owner(),
+      // Lecture publique via API Key limitée aux items publiés (pas de list : évite l'exposition de données sensibles)
+      allow.publicApiKey().to(["read"]),
+    ]),
+
+  ContentPost: a
+    .model({
+      /** Source du contenu : 'youtube' | 'soundcloud' | 'mixcloud' | ... */
+      source: a.string().required(),
+      /** ID externe de la vidéo/track (ex: YouTube videoId) */
+      externalId: a.string().required(),
+      /** Titre de la vidéo */
+      title: a.string().required(),
+      /** URL publique de la vidéo (ex: https://www.youtube.com/watch?v=...) */
+      url: a.string().required(),
+      /** Date de publication ISO 8601 */
+      publishedAt: a.string().required(),
+      /** URL de la miniature (thumbnail) */
+      thumbnailUrl: a.string(),
+      /** Description courte / extrait */
+      description: a.string(),
+      /** Statut : 'published' | 'draft' | 'archived' */
+      status: a.string().required(),
+      /** JSON brut de la réponse API (pour debug / enrichissement futur) */
+      rawJson: a.string(),
+    })
+    .secondaryIndexes((index) => [
+      // Permet à la Lambda de vérifier l'existence d'une vidéo par (source, externalId)
+      index("source").sortKeys(["externalId"]).name("byExternalId"),
+    ])
+    .authorization((allow) => [
+      // Lecture publique via API Key (ton site front)
+      allow.publicApiKey().to(["read", "list"]),
+    ]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -19,39 +73,12 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
+    // Mode par défaut : API Key (lecture publique ContentPost / UserUpload)
     defaultAuthorizationMode: "apiKey",
-    // API Key is used for a.allow.public() rules
     apiKeyAuthorizationMode: {
-      expiresInDays: 30,
+      expiresInDays: 365,
     },
+    // Le mode User Pool (requis pour allow.owner()) est automatiquement activé
+    // par Amplify Gen 2 lorsque la ressource auth est déclarée dans defineBackend.
   },
 });
-
-/*== STEP 2 ===============================================================
-Go to your frontend source code. From your client-side code, generate a
-Data client to make CRUDL requests to your table. (THIS SNIPPET WILL ONLY
-WORK IN THE FRONTEND CODE FILE.)
-
-Using JavaScript or Next.js React Server Components, Middleware, Server 
-Actions or Pages Router? Review how to generate Data clients for those use
-cases: https://docs.amplify.aws/gen2/build-a-backend/data/connect-to-API/
-=========================================================================*/
-
-/*
-"use client"
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-
-const client = generateClient<Schema>() // use this Data client for CRUDL requests
-*/
-
-/*== STEP 3 ===============================================================
-Fetch records from the database and use them in your frontend component.
-(THIS SNIPPET WILL ONLY WORK IN THE FRONTEND CODE FILE.)
-=========================================================================*/
-
-/* For example, in a React component, you can use this snippet in your
-  function's RETURN statement */
-// const { data: todos } = await client.models.Todo.list()
-
-// return <ul>{todos.map(todo => <li key={todo.id}>{todo.content}</li>)}</ul>
