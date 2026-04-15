@@ -59,7 +59,7 @@ const schema = a.schema({
       rawJson: a.string(),
     })
     // Clé composite (source, externalId) — garantit l'unicité au niveau DynamoDB
-    // et permet à la Lambda de faire un upsert idempotent sans index secondaire.
+    // et permet à la Lambda de faire une insertion idempotente (create-if-not-exists) sans index secondaire.
     .identifier(["source", "externalId"])
     .authorization((allow) => [
       // Lecture publique via API Key (ton site front)
