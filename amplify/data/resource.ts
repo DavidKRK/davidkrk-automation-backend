@@ -31,10 +31,10 @@ const schema = a.schema({
       publicUrl: a.string(),
     })
     .authorization((allow) => [
-      // Le propriétaire peut créer, lire, modifier et supprimer ses uploads
+      // Le propriétaire peut créer, lire, modifier et supprimer ses uploads (nécessite User Pool)
       allow.owner(),
-      // Lecture publique via API Key (site front)
-      allow.publicApiKey().to(["read", "list"]),
+      // Lecture publique via API Key limitée aux items publiés (pas de list : évite l'exposition de données sensibles)
+      allow.publicApiKey().to(["read"]),
     ]),
 
   ContentPost: a
@@ -73,9 +73,12 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
+    // Mode par défaut : API Key (lecture publique ContentPost / UserUpload)
     defaultAuthorizationMode: "apiKey",
     apiKeyAuthorizationMode: {
       expiresInDays: 365,
     },
+    // Le mode User Pool (requis pour allow.owner()) est automatiquement activé
+    // par Amplify Gen 2 lorsque la ressource auth est déclarée dans defineBackend.
   },
 });
