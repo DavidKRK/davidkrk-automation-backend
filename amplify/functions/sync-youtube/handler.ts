@@ -121,6 +121,12 @@ async function appsyncRequest<T>(
     };
 
     const req = https.request(options, (res) => {
+      if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+        res.resume();
+        reject(new Error(`AppSync Request Failed. Status Code: ${res.statusCode}`));
+        return;
+      }
+      let data = "";
       let data = "";
       res.setEncoding("utf8");
       res.on("data", (chunk: string) => (data += chunk));
