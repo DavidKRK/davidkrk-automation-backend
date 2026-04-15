@@ -33,7 +33,7 @@ const schema = a.schema({
       status: a.enum(["published", "draft", "hidden"]),
       rawJson: a.string(),
     })
-    .identifier(["externalId"])
+    .identifier(["source", "externalId"])
     .authorization((allow) => [
       allow.publicApiKey().to(["read", "list"]),
       allow.resource(syncYoutube).to(["create", "update", "delete"]),
