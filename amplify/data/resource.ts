@@ -59,7 +59,7 @@ const schema = a.schema({
       rawJson: a.string(),
     })
     // Clé composite (source, externalId) — garantit l'unicité au niveau DynamoDB
-    // et permet à la Lambda de faire un upsert idempotent sans index secondaire.
+    // et permet à la Lambda de faire une insertion idempotente (create-if-not-exists) sans index secondaire.
     .identifier(["source", "externalId"])
     .authorization((allow) => [
       // Lecture publique via API Key (ton site front)
@@ -75,8 +75,7 @@ export const data = defineData({
     // Mode par défaut : API Key (lecture publique ContentPost / UserUpload)
     defaultAuthorizationMode: "apiKey",
     apiKeyAuthorizationMode: {
-      // Durée réduite pour limiter la fenêtre d'abus en cas d'exposition côté client.
-      expiresInDays: 30,
+      expiresInDays: 365,
     },
     // Le mode User Pool (requis pour allow.owner()) est automatiquement activé
     // par Amplify Gen 2 lorsque la ressource auth est déclarée dans defineBackend.

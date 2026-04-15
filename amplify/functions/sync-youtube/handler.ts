@@ -67,7 +67,7 @@ export const handler: Handler = async () => {
     let created = 0;
     let skipped = 0;
 
-    // ── ÉTAPE 3 : upsert dans DynamoDB ───────────────────────────────────────
+    // ── ÉTAPE 3 : insertion idempotente dans DynamoDB ────────────────────────
     for (const item of items) {
       const snippet = item.snippet;
       const videoId = snippet?.resourceId?.videoId;
