@@ -21,6 +21,7 @@ export const storage = defineStorage({
     // Espace public scopé : lecture pour tous, écriture/suppression réservées au propriétaire du préfixe
     "public/{entity_id}/*": [
       allow.entity("identity").to(["read", "write", "delete"]),
+      allow.authenticated.to(["read"]),
       allow.guest.to(["read"]),
     ],
   }),
