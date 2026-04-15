@@ -32,21 +32,10 @@ function getRequiredEnv(name: string): string {
   return value;
 }
 
-// Le nom de la table DynamoDB est injecté automatiquement par Amplify Gen 2
-// via la variable d'environnement générée lors du déploiement.
-// Format : <appId>-<branchName>-ContentPost-<hash>
-const TABLE_NAME = getRequiredEnv("CONTENT_POST_TABLE_NAME");
-
 export const handler: Handler = async () => {
-  const API_KEY = process.env.YOUTUBE_API_KEY;
-  const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID;
-
-  if (!API_KEY || !CHANNEL_ID) {
-    const message =
-      "[sync-youtube] Variables manquantes : YOUTUBE_API_KEY ou YOUTUBE_CHANNEL_ID non définies.";
-    console.error(message);
-    throw new Error(message);
-  }
+  const TABLE_NAME = getRequiredEnv("CONTENT_POST_TABLE_NAME");
+  const API_KEY = getRequiredEnv("YOUTUBE_API_KEY");
+  const CHANNEL_ID = getRequiredEnv("YOUTUBE_CHANNEL_ID");
 
   try {
     // ── ÉTAPE 1 : récupérer l'ID de la playlist 'uploads' ────────────────────
