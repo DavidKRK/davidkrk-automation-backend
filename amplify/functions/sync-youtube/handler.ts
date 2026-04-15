@@ -74,7 +74,9 @@ export const handler: Handler = async () => {
       if (!videoId) continue;
 
       const post = {
-        // Clé composite DynamoDB : source (partition) + externalId (sort)
+        // Clé primaire composite DynamoDB (générée par .identifier(["source", "externalId"])) :
+        //   source     → partition key
+        //   externalId → sort key
         source: "youtube",
         externalId: videoId,
         title: snippet?.title ?? "Sans titre",
@@ -106,8 +108,10 @@ export const handler: Handler = async () => {
           new PutCommand({
             TableName: TABLE_NAME,
             Item: post,
-            // La clé composite (source, externalId) garantit l'unicité —
-            // cette condition empêche d'écraser un enregistrement existant.
+            // attribute_not_exists(source) est l'idiome DynamoDB standard pour "créer seulement
+            // si l'item n'existe pas encore" : DynamoDB évalue cette condition dans le contexte
+            // de l'item identifié par la clé composite exacte (source, externalId), donc un item
+            // avec le même externalId mais une source différente n'est pas concerné.
             ConditionExpression: "attribute_not_exists(source)",
           })
         );
