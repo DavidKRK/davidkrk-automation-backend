@@ -15,5 +15,5 @@ export const syncYoutube = defineFunction({
   name: "sync-youtube",
   entry: "./handler.ts",
   schedule: "every 6h",
-  timeoutSeconds: 180,
+  timeoutSeconds: 60,
 });

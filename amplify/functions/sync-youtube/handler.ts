@@ -1,6 +1,6 @@
 import type { Handler } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 
 /**
  * Handler de la fonction sync-youtube
@@ -8,8 +8,8 @@ import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-d
  * Flux :
  * 1. Récupère l'ID de la playlist 'uploads' de la chaîne via channels.list
  * 2. Lit les 50 dernières vidéos via playlistItems.list (coût quota : 1 unité/appel)
- * 3. Pour chaque vidéo, crée un enregistrement dans la table ContentPost DynamoDB uniquement si elle n'existe pas encore
- *    (les vidéos déjà présentes sont ignorées ; cette fonction ne met pas à jour les métadonnées existantes)
+ * 3. Pour chaque vidéo, insertion idempotente (create-if-not-exists) dans la table ContentPost DynamoDB
+ *    (clé composite source+externalId — ConditionExpression empêche les doublons, sans mettre à jour les éléments existants)
  *
  * Quota YouTube Data API v3 :
  *   - channels.list     : 1 unité
@@ -73,25 +73,10 @@ export const handler: Handler = async () => {
       const videoId = snippet?.resourceId?.videoId;
       if (!videoId) continue;
 
-      // Vérifie si la vidéo existe déjà (index externalId + source)
-      const existing = await dynamo.send(
-        new QueryCommand({
-          TableName: TABLE_NAME,
-          IndexName: "byExternalId",
-          KeyConditionExpression: "#src = :src AND externalId = :vid",
-          ExpressionAttributeNames: { "#src": "source" },
-          ExpressionAttributeValues: { ":src": "youtube", ":vid": videoId },
-          Limit: 1,
-        })
-      );
-
-      if (existing.Count && existing.Count > 0) {
-        skipped++;
-        continue;
-      }
-
       const post = {
-        id: `youtube_${videoId}`,
+        // Clé primaire composite DynamoDB (générée par .identifier(["source", "externalId"])) :
+        //   source     → partition key
+        //   externalId → sort key
         source: "youtube",
         externalId: videoId,
         title: snippet?.title ?? "Sans titre",
@@ -123,7 +108,11 @@ export const handler: Handler = async () => {
           new PutCommand({
             TableName: TABLE_NAME,
             Item: post,
-            ConditionExpression: "attribute_not_exists(id)",
+            // attribute_not_exists(source) est l'idiome DynamoDB standard pour "créer seulement
+            // si l'item n'existe pas encore" : DynamoDB évalue cette condition dans le contexte
+            // de l'item identifié par la clé composite exacte (source, externalId), donc un item
+            // avec le même externalId mais une source différente n'est pas concerné.
+            ConditionExpression: "attribute_not_exists(source)",
           })
         );
         created++;
