@@ -127,7 +127,6 @@ async function appsyncRequest<T>(
         return;
       }
       let data = "";
-      let data = "";
       res.setEncoding("utf8");
       res.on("data", (chunk: string) => (data += chunk));
       res.on("end", () => {
