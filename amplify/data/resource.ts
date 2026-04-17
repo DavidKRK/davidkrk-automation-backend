@@ -4,7 +4,7 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
  * Schéma V1.1 — ContentPost + UserUpload
  * ContentPost  : vidéos YouTube synchronisées depuis la chaîne DavidKRK.
  * UserUpload   : fichiers uploadés par les utilisateurs authentifiés (S3).
- * Authorization : lecture publique via API Key, écriture propriétaire via User Pool.
+ * Authorization : ContentPost en lecture publique via API Key ; UserUpload en écriture propriétaire via User Pool, avec lecture publique via API Key.
  */
 const schema = a.schema({
   /**
