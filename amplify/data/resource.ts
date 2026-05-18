@@ -33,7 +33,7 @@ const schema = a.schema({
     .authorization((allow) => [
       // Le propriétaire peut créer, lire, modifier et supprimer ses uploads (nécessite User Pool)
       allow.owner(),
-      // Lecture publique via API Key limitée aux items publiés (pas de list : évite l'exposition de données sensibles)
+      // Lecture publique ponctuelle via API Key (sans list) ; cette règle ne filtre pas automatiquement sur status
       allow.publicApiKey().to(["read"]),
     ]),
 
