@@ -5,3 +5,6 @@ amplifyconfiguration*
 
 # node modules
 node_modules
+
+# npm cache (used by Amplify preBuild: npm install --cache .npm)
+.npm
