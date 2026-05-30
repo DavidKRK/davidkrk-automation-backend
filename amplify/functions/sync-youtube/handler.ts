@@ -1,394 +1,247 @@
 import type { Handler } from "aws-lambda";
-import { SignatureV4 } from "@smithy/signature-v4";
-import { Sha256 } from "@aws-crypto/sha256-js";
-import * as https from "https";
-import { URL } from "url";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 
 /**
- * Handler principal de la fonction sync-youtube.
+ * Handler de la fonction sync-youtube
  *
- * Logique V1.0 :
- *  1. Récupère l'ID de la playlist "uploads" de la chaîne via channels.list
- *  2. Lit les vidéos via playlistItems.list (max 50 par page, pagination complète)
- *  3. Pour chaque vidéo, upsert un ContentPost dans DynamoDB via AppSync (signé IAM/SigV4)
+ * Flux :
+ * 1. Récupère l'ID de la playlist 'uploads' de la chaîne via channels.list
+ * 2. Lit les 50 dernières vidéos via playlistItems.list (coût quota : 1 unité/appel)
+ * 3. Détecte les YouTube Shorts via videos.list?part=contentDetails (coût quota : 1 unité)
+ *    — un Short est une vidéo de durée ≤ 3 minutes (180 secondes)
+ *    — URL stockée : youtube.com/shorts/{id} pour les Shorts,
+ *                    youtube.com/watch?v={id} pour les vidéos classiques
+ * 4. Pour chaque vidéo, insertion idempotente (create-if-not-exists) dans la table ContentPost DynamoDB
+ *    (clé composite source+externalId — ConditionExpression empêche les doublons, sans mettre à jour les éléments existants)
  *
- * Pourquoi playlistItems et pas search.list ?
- *   → search.list coûte 100 unités de quota par appel (très cher)
- *   → playlistItems.list coûte seulement 1 unité — beaucoup plus économique
+ * Quota YouTube Data API v3 :
+ *   - channels.list     : 1 unité
+ *   - playlistItems.list: 1 unité
+ *   - videos.list       : 1 unité (jusqu'à 50 IDs par appel)
+ *   Total par exécution : ~3 unités (très économique, max 10 000 unités/jour)
  */
 
 const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
-const REQUEST_TIMEOUT_MS = 10_000;
-const DESCRIPTION_MAX_LENGTH = 500;
+const MAX_DESCRIPTION_LENGTH = 500;
+/** Durée maximale en secondes pour qu'une vidéo soit considérée comme un Short */
+const SHORT_MAX_SECONDS = 180;
 
-interface YouTubePlaylistItem {
-  snippet: {
-    title: string;
-    description: string;
-    publishedAt: string;
-    resourceId: { videoId: string };
-    thumbnails: { medium?: { url: string }; default?: { url: string } };
-  };
-}
+const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
-// ---------------------------------------------------------------------------
-// HTTP helpers
-// ---------------------------------------------------------------------------
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
 
-/**
- * httpGet — effectue un GET HTTPS avec gestion du timeout, validation du
- * status HTTP et parsing JSON. Lance une Error explicite sur 4xx/5xx.
- */
-async function httpGet<T>(url: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const req = https.get(url, (res) => {
-      let data = "";
-      const statusCode = res.statusCode ?? 0;
-      const statusMessage = res.statusMessage ?? "";
+  if (!value) {
+    console.error(`[sync-youtube] Variable d'environnement requise manquante : ${name}.`);
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
 
-      res.setEncoding("utf8");
-      res.on("data", (chunk: string) => (data += chunk));
-      res.on("end", () => {
-        if (statusCode < 200 || statusCode >= 300) {
-          reject(
-            new Error(
-              `HTTP ${statusCode}${statusMessage ? ` ${statusMessage}` : ""} for ${url}. Body: ${data}`
-            )
-          );
-          return;
-        }
-        try {
-          resolve(JSON.parse(data) as T);
-        } catch (e) {
-          reject(new Error(`JSON parse error: ${e}`));
-        }
-      });
-    });
-
-    req.setTimeout(REQUEST_TIMEOUT_MS, () => {
-      req.destroy(new Error(`Request timeout after ${REQUEST_TIMEOUT_MS}ms for ${url}`));
-    });
-
-    req.on("error", reject);
-  });
+  return value;
 }
 
 /**
- * appsyncRequest — effectue une requête GraphQL signée en IAM (SigV4) vers AppSync.
- * Vérifie le status HTTP et la présence d'erreurs GraphQL dans la réponse.
+ * Retourne la durée totale en secondes à partir d'une durée ISO 8601 (ex: "PT1M30S" → 90).
+ * Retourne Infinity pour les durées invalides, vides, ou comportant des jours/heures
+ * (ces vidéos ne peuvent pas être des Shorts).
+ *
+ * Note : YouTube a étendu la durée maximale des Shorts à 3 minutes (180 s) en octobre 2024.
  */
-async function appsyncRequest<T>(
-  endpoint: string,
-  query: string,
-  variables: Record<string, unknown>
-): Promise<T> {
-  const url = new URL(endpoint);
-  const body = JSON.stringify({ query, variables });
-  const region = process.env.AWS_REGION ?? "eu-west-3";
-
-  const signer = new SignatureV4({
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-      sessionToken: process.env.AWS_SESSION_TOKEN,
-    },
-    region,
-    service: "appsync",
-    sha256: Sha256,
-  });
-
-  const signed = await signer.sign({
-    method: "POST",
-    hostname: url.hostname,
-    path: url.pathname,
-    protocol: url.protocol,
-    headers: {
-      "Content-Type": "application/json",
-      host: url.hostname,
-    },
-    body,
-  });
-
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: url.hostname,
-      path: url.pathname,
-      method: "POST",
-      headers: {
-        ...signed.headers,
-        "Content-Length": Buffer.byteLength(body),
-      },
-    };
-
-    const req = https.request(options, (res) => {
-      if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
-        res.resume();
-        reject(new Error(`AppSync Request Failed. Status Code: ${res.statusCode}`));
-        return;
-      }
-      let data = "";
-      res.setEncoding("utf8");
-      res.on("data", (chunk: string) => (data += chunk));
-      res.on("end", () => {
-        try {
-          const parsed = JSON.parse(data) as {
-            data?: T;
-            errors?: Array<{ message?: string }>;
-          };
-          const statusCode = res.statusCode ?? 0;
-
-          if (statusCode < 200 || statusCode >= 300) {
-            const statusMessage = res.statusMessage ? ` ${res.statusMessage}` : "";
-            reject(
-              new Error(
-                `AppSync request failed with HTTP ${statusCode}${statusMessage}: ${data}`
-              )
-            );
-            return;
-          }
-
-          if (Array.isArray(parsed.errors) && parsed.errors.length > 0) {
-            const graphqlMessage = parsed.errors
-              .map((e) => e.message ?? JSON.stringify(e))
-              .join("; ");
-            reject(new Error(`AppSync GraphQL error: ${graphqlMessage}`));
-            return;
-          }
-
-          resolve(parsed.data as T);
-        } catch (e) {
-          reject(new Error(`AppSync JSON parse error: ${e}`));
-        }
-      });
-    });
-
-    req.setTimeout(REQUEST_TIMEOUT_MS, () => {
-      req.destroy(new Error(`AppSync request timeout after ${REQUEST_TIMEOUT_MS}ms`));
-    });
-
-    req.on("error", reject);
-    req.write(body);
-    req.end();
-  });
+function isoToSeconds(isoDuration: string): number {
+  if (!isoDuration) return Infinity;
+  // Accepte uniquement PT[H]M?S? — les durées P1DT... sont exclues (jamais des Shorts)
+  const match = isoDuration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
+  if (!match) return Infinity;
+  const hours = parseInt(match[1] ?? "0", 10);
+  const minutes = parseInt(match[2] ?? "0", 10);
+  const seconds = parseInt(match[3] ?? "0", 10);
+  const total = hours * 3600 + minutes * 60 + seconds;
+  // Durée de 0 seconde = métadonnée absente ou vidéo en cours de traitement → ne pas traiter comme Short
+  return total > 0 ? total : Infinity;
 }
 
-// ---------------------------------------------------------------------------
-// GraphQL mutations/queries
-// ---------------------------------------------------------------------------
-
-const CREATE_CONTENT_POST = /* GraphQL */ `
-  mutation CreateContentPost($input: CreateContentPostInput!) {
-    createContentPost(input: $input) {
-      externalId
-      title
-    }
-  }
-`;
-
-const UPDATE_CONTENT_POST = /* GraphQL */ `
-  mutation UpdateContentPost($input: UpdateContentPostInput!) {
-    updateContentPost(input: $input) {
-      externalId
-      title
-    }
-  }
-`;
-
-const GET_CONTENT_POST = /* GraphQL */ `
-  query GetContentPost($externalId: String!) {
-    getContentPost(externalId: $externalId) {
-      externalId
-      title
-    }
-  }
-`;
-
-// ---------------------------------------------------------------------------
-// YouTube helpers
-// ---------------------------------------------------------------------------
-
-async function getUploadsPlaylistId(
-  apiKey: string,
-  channelId: string
-): Promise<string> {
-  const url = `${YOUTUBE_API_BASE}/channels?part=contentDetails&id=${channelId}&key=${apiKey}`;
-  const data = await httpGet<{
-    items: Array<{ contentDetails: { relatedPlaylists: { uploads: string } } }>;
-  }>(url);
-
-  if (!data.items?.length) {
-    throw new Error(`Chaîne YouTube introuvable : ${channelId}`);
-  }
-  return data.items[0].contentDetails.relatedPlaylists.uploads;
-}
-
-async function fetchAllPlaylistItems(
-  apiKey: string,
-  playlistId: string
-): Promise<YouTubePlaylistItem[]> {
-  const items: YouTubePlaylistItem[] = [];
-  let pageToken: string | undefined = undefined;
-
-  do {
-    const pageParam = pageToken ? `&pageToken=${pageToken}` : "";
-    const url = `${YOUTUBE_API_BASE}/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&key=${apiKey}${pageParam}`;
-    const data = await httpGet<{
-      items: YouTubePlaylistItem[];
-      nextPageToken?: string;
-    }>(url);
-
-    items.push(...(data.items ?? []));
-    pageToken = data.nextPageToken;
-  } while (pageToken);
-
-  return items;
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * truncateDescription — tronque la description à DESCRIPTION_MAX_LENGTH caractères.
- * Loggue un avertissement si la troncature a eu lieu, pour faciliter le debug.
- */
-function truncateDescription(description: string, videoId: string): string {
-  if (description.length <= DESCRIPTION_MAX_LENGTH) return description;
-  console.warn(
-    `[sync-youtube] Description tronquée pour videoId=${videoId} : ` +
-    `${description.length} chars → ${DESCRIPTION_MAX_LENGTH} chars`
-  );
-  return description.slice(0, DESCRIPTION_MAX_LENGTH);
-}
-
-// ---------------------------------------------------------------------------
-// Upsert logic
-// ---------------------------------------------------------------------------
-
-type UpsertResult = "created" | "updated";
-
-async function upsertVideo(
-  endpoint: string,
-  item: YouTubePlaylistItem
-): Promise<UpsertResult> {
-  const { snippet } = item;
-  const videoId = snippet.resourceId.videoId;
-  const thumbnailUrl =
-    snippet.thumbnails?.medium?.url ??
-    snippet.thumbnails?.default?.url ??
-    null;
-  const description = truncateDescription(snippet.description ?? "", videoId);
-
-  // Vérifie si la vidéo existe déjà via getContentPost (requête efficace par clé)
-  const existing = await appsyncRequest<{
-    getContentPost?: { externalId: string; title: string } | null;
-  }>(endpoint, GET_CONTENT_POST, { externalId: videoId });
-
-  if (existing?.getContentPost) {
-    // Mise à jour complète de tous les champs (titre, description, URL inclus)
-    await appsyncRequest(endpoint, UPDATE_CONTENT_POST, {
-      input: {
-        externalId: videoId,
-        title: snippet.title,
-        description,
-        url: `https://www.youtube.com/watch?v=${videoId}`,
-        thumbnailUrl,
-        publishedAt: snippet.publishedAt,
-        status: "published",
-        rawJson: JSON.stringify(snippet),
-      },
-    });
-    return "updated";
-  }
-
-  await appsyncRequest(endpoint, CREATE_CONTENT_POST, {
-    input: {
-      source: "youtube",
-      externalId: videoId,
-      title: snippet.title,
-      description,
-      url: `https://www.youtube.com/watch?v=${videoId}`,
-      thumbnailUrl,
-      publishedAt: snippet.publishedAt,
-      status: "published",
-      rawJson: JSON.stringify(snippet),
-    },
-  });
-  return "created";
-}
-
-async function upsertVideos(
-  endpoint: string,
-  items: YouTubePlaylistItem[]
-): Promise<void> {
-  console.log(`[sync-youtube] ${items.length} vidéo(s) à synchroniser`);
-
-  // Parallélisation des upserts pour réduire le temps d'exécution Lambda
-  const results = await Promise.allSettled(
-    items.map((item) => upsertVideo(endpoint, item))
-  );
-
-  let created = 0;
-  let updated = 0;
-  let failed = 0;
-
-  for (const result of results) {
-    if (result.status === "fulfilled") {
-      if (result.value === "created") created++;
-      else updated++;
-    } else {
-      failed++;
-      console.error("[sync-youtube] Échec upsert :", result.reason);
-    }
-  }
-
-  console.log(
-    `[sync-youtube] Résultat : ${created} créée(s), ${updated} mise(s) à jour, ${failed} échec(s)`
-  );
-
-  if (failed > 0) {
-    throw new Error(`${failed} vidéo(s) n'ont pas pu être synchronisée(s)`);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Lambda handler
-// ---------------------------------------------------------------------------
-
-export const handler: Handler = async (event) => {
-  console.log("[sync-youtube] Démarrage de la synchronisation YouTube");
-
-  const apiKey = process.env.YOUTUBE_API_KEY;
-  const channelId = process.env.YOUTUBE_CHANNEL_ID;
-  const endpoint = process.env.AMPLIFY_DATA_GRAPHQL_ENDPOINT;
-
-  if (!apiKey || !channelId) {
-    throw new Error(
-      "Variables d'environnement manquantes : YOUTUBE_API_KEY et/ou YOUTUBE_CHANNEL_ID"
-    );
-  }
-  if (!endpoint) {
-    throw new Error(
-      "Variable d'environnement manquante : AMPLIFY_DATA_GRAPHQL_ENDPOINT"
-    );
-  }
+export const handler: Handler = async () => {
+  const TABLE_NAME = getRequiredEnv("CONTENT_POST_TABLE_NAME");
+  const API_KEY = getRequiredEnv("YOUTUBE_API_KEY");
+  const CHANNEL_ID = getRequiredEnv("YOUTUBE_CHANNEL_ID");
 
   try {
-    const uploadsPlaylistId = await getUploadsPlaylistId(apiKey, channelId);
+    // ── ÉTAPE 1 : récupérer l'ID de la playlist 'uploads' ────────────────────
+    const channelRes = await fetch(
+      `${YOUTUBE_API_BASE}/channels?part=contentDetails&id=${CHANNEL_ID}&key=${API_KEY}`
+    );
+    if (!channelRes.ok) throw new Error(`channels.list HTTP ${channelRes.status}`);
+    const channelData = await channelRes.json() as YouTubeChannelResponse;
+
+    const uploadsPlaylistId =
+      channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+
+    if (!uploadsPlaylistId) {
+      throw new Error(`Playlist 'uploads' introuvable pour la chaîne ${CHANNEL_ID}`);
+    }
     console.log(`[sync-youtube] Playlist uploads : ${uploadsPlaylistId}`);
 
-    const items = await fetchAllPlaylistItems(apiKey, uploadsPlaylistId);
-    await upsertVideos(endpoint, items);
+    // ── ÉTAPE 2 : récupérer les 50 dernières vidéos ──────────────────────────
+    const playlistRes = await fetch(
+      `${YOUTUBE_API_BASE}/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=50&key=${API_KEY}`
+    );
+    if (!playlistRes.ok) throw new Error(`playlistItems.list HTTP ${playlistRes.status}`);
+    const playlistData = await playlistRes.json() as YouTubePlaylistResponse;
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        message: `Synchronisation réussie : ${items.length} vidéo(s)`,
-        count: items.length,
-      }),
-    };
+    const items = playlistData.items ?? [];
+    console.log(`[sync-youtube] ${items.length} vidéo(s) récupérée(s).`);
+
+    // ── ÉTAPE 3 : détecter les YouTube Shorts via videos.list ─────────────────
+    const videoIds = items
+      .map((item) => item.snippet?.resourceId?.videoId)
+      .filter((id): id is string => Boolean(id));
+
+    const shortVideoIds = new Set<string>();
+
+    if (videoIds.length > 0) {
+      const videosRes = await fetch(
+        `${YOUTUBE_API_BASE}/videos?part=contentDetails&id=${videoIds.join(",")}&key=${API_KEY}`
+      );
+      if (!videosRes.ok) {
+        // Non bloquant : on continue sans détection Short et on utilise watch?v= par défaut
+        console.warn(
+          `[sync-youtube] videos.list HTTP ${videosRes.status} — détection Shorts ignorée, URLs watch?v= utilisées.`
+        );
+      } else {
+        const videosData = await videosRes.json() as YouTubeVideosResponse;
+        for (const video of (videosData.items ?? [])) {
+          const duration = video.contentDetails?.duration ?? "";
+          if (!duration) {
+            console.warn(
+              `[sync-youtube] Durée manquante pour la vidéo ${video.id ?? "?"} — traitée comme vidéo classique.`
+            );
+          }
+          if (video.id && isoToSeconds(duration) <= SHORT_MAX_SECONDS) {
+            shortVideoIds.add(video.id);
+          }
+        }
+        console.log(
+          `[sync-youtube] ${shortVideoIds.size} Short(s) détecté(s) sur ${videoIds.length} vidéo(s).`
+        );
+      }
+    }
+
+    let created = 0;
+    let skipped = 0;
+
+    // ── ÉTAPE 4 : insertion idempotente dans DynamoDB ────────────────────────
+    for (const item of items) {
+      const snippet = item.snippet;
+      const videoId = snippet?.resourceId?.videoId;
+      if (!videoId) continue;
+
+      const isShort = shortVideoIds.has(videoId);
+      const videoUrl = isShort
+        ? `https://www.youtube.com/shorts/${videoId}`
+        : `https://www.youtube.com/watch?v=${videoId}`;
+
+      const post = {
+        // Clé primaire composite DynamoDB (générée par .identifier(["source", "externalId"])) :
+        //   source     → partition key
+        //   externalId → sort key
+        source: "youtube",
+        externalId: videoId,
+        title: snippet?.title ?? "Sans titre",
+        url: videoUrl,
+        publishedAt: snippet?.publishedAt ?? new Date().toISOString(),
+        thumbnailUrl:
+          snippet?.thumbnails?.maxres?.url ??
+          snippet?.thumbnails?.high?.url ??
+          snippet?.thumbnails?.default?.url ??
+          "",
+        description: (() => {
+          const raw = snippet?.description ?? "";
+          if (raw.length > MAX_DESCRIPTION_LENGTH) {
+            console.warn(
+              `[sync-youtube] Description tronquée pour ${videoId} : ${raw.length} → ${MAX_DESCRIPTION_LENGTH} caractères`
+            );
+          }
+          return raw.substring(0, MAX_DESCRIPTION_LENGTH);
+        })(),
+        status: "published",
+        rawJson: JSON.stringify(snippet),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        __typename: "ContentPost",
+      };
+
+      try {
+        await dynamo.send(
+          new PutCommand({
+            TableName: TABLE_NAME,
+            Item: post,
+            // attribute_not_exists(source) est l'idiome DynamoDB standard pour "créer seulement
+            // si l'item n'existe pas encore" : DynamoDB évalue cette condition dans le contexte
+            // de l'item identifié par la clé composite exacte (source, externalId), donc un item
+            // avec le même externalId mais une source différente n'est pas concerné.
+            ConditionExpression: "attribute_not_exists(source)",
+          })
+        );
+        created++;
+        console.log(`[sync-youtube] Ajouté (${isShort ? "Short" : "vidéo"}) : ${post.title} (${videoId})`);
+      } catch (err) {
+        if (
+          typeof err === "object" &&
+          err !== null &&
+          "name" in err &&
+          err.name === "ConditionalCheckFailedException"
+        ) {
+          skipped++;
+          console.log(`[sync-youtube] Déjà présente, ignorée : ${post.title} (${videoId})`);
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    console.log(
+      `[sync-youtube] Terminé — ${created} créées, ${skipped} déjà présentes.`
+    );
+    return { statusCode: 200, body: `${created} vidéos ajoutées.` };
   } catch (err) {
-    console.error("[sync-youtube] ERREUR :", err);
+    console.error("[sync-youtube] Erreur :", err);
     throw err;
   }
 };
+
+// ── Types YouTube Data API v3 (minimal) ──────────────────────────────────────
+
+interface YouTubeChannelResponse {
+  items?: Array<{
+    contentDetails?: {
+      relatedPlaylists?: {
+        uploads?: string;
+      };
+    };
+  }>;
+}
+
+interface YouTubePlaylistResponse {
+  items?: Array<{
+    snippet?: {
+      title?: string;
+      description?: string;
+      publishedAt?: string;
+      resourceId?: { videoId?: string };
+      thumbnails?: {
+        default?: { url: string };
+        high?: { url: string };
+        maxres?: { url: string };
+      };
+    };
+  }>;
+}
+
+interface YouTubeVideosResponse {
+  items?: Array<{
+    id?: string;
+    contentDetails?: {
+      duration?: string;
+    };
+  }>;
+}

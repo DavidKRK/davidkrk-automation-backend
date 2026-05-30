@@ -1,52 +1,72 @@
 # davidkrk-automation-backend
 
-Backend AWS Amplify Gen 2 pour [davidkrk.com](https://davidkrk.com).
+Backend AWS Amplify Gen 2 pour l'automatisation de la chaîne **DavidKRK** — synchronisation YouTube, gestion des uploads utilisateurs et API publique.
 
-Ce backend automatise la récupération et la diffusion des contenus de David KRK
-(DJ, producteur, Saint-Jean-de-Luz) depuis YouTube et les plateformes musicales.
+## Architecture
 
-## Architecture V1.0
+| Ressource | Service AWS | Rôle |
+|-----------|-------------|------|
+| `auth` | Amazon Cognito | Authentification des utilisateurs |
+| `data` | AWS AppSync + DynamoDB | API GraphQL + modèles `ContentPost` et `UserUpload` |
+| `storage` | Amazon S3 | Stockage des fichiers uploadés |
+| `sync-youtube` | Lambda (planifiée) | Synchronisation YouTube toutes les 6 h |
 
+## Modèles de données
+
+### ContentPost
+Vidéos YouTube synchronisées automatiquement depuis la chaîne DavidKRK.
+- Lecture/liste publique via API Key
+- Écriture via la Lambda `sync-youtube` (IAM)
+
+### UserUpload
+Fichiers uploadés par les utilisateurs authentifiés (audio, images, etc.).
+- CRUD propriétaire via User Pool (Cognito)
+- Lecture publique via API Key
+
+## Prise en main
+
+1. Cloner le dépôt :
+
+```bash
+git clone https://github.com/DavidKRK/davidkrk-automation-backend.git
+cd davidkrk-automation-backend
 ```
-amplify/
-├── auth/                        — Cognito (authentification admin)
-├── data/
-│   └── resource.ts              — Modèle ContentPost (DynamoDB via AppSync)
-├── functions/
-│   └── sync-youtube/
-│       ├── resource.ts          — Définition de la fonction Lambda planifiée
-│       └── handler.ts           — Logique de synchro YouTube Data API v3
-└── backend.ts                   — Point d'entrée Amplify
+
+2. Installer les dépendances :
+
+```bash
+npm install
 ```
 
-## Flux de synchronisation YouTube
+3. Vérifier les types TypeScript :
 
-1. La fonction `sync-youtube` est déclenchée **toutes les 6 heures** (cron Amplify).
-2. Elle appelle `channels.list` pour récupérer l'ID de la playlist `uploads`.
-3. Elle lit les vidéos via `playlistItems.list` (1 unité de quota — économique).
-4. Chaque vidéo est upsertée dans le modèle **ContentPost** (DynamoDB).
-5. Le site `davidkrk.com` lit les posts via l'API AppSync (clé publique en lecture seule).
+```bash
+npm run typecheck
+```
 
-## Variables d'environnement à configurer
+4. Déployer via Amplify CLI :
 
-Dans **Amplify Console → ton environnement → Environment variables** :
+```bash
+npx ampx pipeline-deploy --branch <branche> --app-id <app-id>
+```
 
-| Variable             | Description                              |
-|----------------------|------------------------------------------|
-| `YOUTUBE_API_KEY`    | Clé API Google / YouTube Data API v3     |
-| `YOUTUBE_CHANNEL_ID` | ID de ta chaîne YouTube (UCxxxxxxxx…)    |
+## Variables d'environnement requises
 
-## Roadmap
+À définir dans **Amplify Console → App settings → Environment variables** :
 
-- **V1.0** ✅ YouTube — modèle ContentPost + Lambda planifiée
-- **V1.1** — Connexion réelle DynamoDB (upsert via client Amplify Data)
-- **V1.2** — SoundCloud / Mixcloud
-- **V1.3** — Endpoint public REST pour le site
+| Variable | Description |
+|----------|-------------|
+| `YOUTUBE_API_KEY` | Clé API Google Cloud (YouTube Data API v3) |
+| `YOUTUBE_CHANNEL_ID` | ID de la chaîne YouTube (commence par `UC`) |
 
-## Stack technique
+> ⚠️ Ne jamais committer ces valeurs dans le code source.
 
-- AWS Amplify Gen 2
-- TypeScript
-- AWS Lambda (Node.js 20)
-- DynamoDB (via AppSync)
-- YouTube Data API v3
+Voir [`amplify/functions/sync-youtube/README.md`](amplify/functions/sync-youtube/README.md) pour le détail de la Lambda.
+
+## Sécurité
+
+Voir [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) pour plus d'informations.
+
+## Licence
+
+Ce projet est sous licence MIT-0. Voir le fichier LICENSE.
