@@ -42,16 +42,23 @@ function getRequiredEnv(name: string): string {
 
 /**
  * Retourne la durée totale en secondes à partir d'une durée ISO 8601 (ex: "PT1M30S" → 90).
- * Retourne Infinity si le format est invalide ou si la durée comporte des heures.
+ * Retourne Infinity pour les durées invalides, vides, ou comportant des jours/heures
+ * (ces vidéos ne peuvent pas être des Shorts).
+ *
+ * Note : YouTube a étendu la durée maximale des Shorts à 3 minutes (180 s) en octobre 2024.
  */
 function isoToSeconds(isoDuration: string): number {
+  if (!isoDuration) return Infinity;
+  // Accepte uniquement PT[H]M?S? — les durées P1DT... sont exclues (jamais des Shorts)
   const match = isoDuration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
   if (!match) return Infinity;
   const hours = parseInt(match[1] ?? "0", 10);
   if (hours > 0) return Infinity;
   const minutes = parseInt(match[2] ?? "0", 10);
   const seconds = parseInt(match[3] ?? "0", 10);
-  return minutes * 60 + seconds;
+  const total = minutes * 60 + seconds;
+  // Durée de 0 seconde = métadonnée absente ou vidéo en cours de traitement → ne pas traiter comme Short
+  return total > 0 ? total : Infinity;
 }
 
 export const handler: Handler = async () => {
@@ -105,6 +112,11 @@ export const handler: Handler = async () => {
         const videosData = await videosRes.json() as YouTubeVideosResponse;
         for (const video of (videosData.items ?? [])) {
           const duration = video.contentDetails?.duration ?? "";
+          if (!duration) {
+            console.warn(
+              `[sync-youtube] Durée manquante pour la vidéo ${video.id ?? "?"} — traitée comme vidéo classique.`
+            );
+          }
           if (video.id && isoToSeconds(duration) <= SHORT_MAX_SECONDS) {
             shortVideoIds.add(video.id);
           }
