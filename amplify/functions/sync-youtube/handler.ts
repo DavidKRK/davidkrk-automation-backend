@@ -53,10 +53,9 @@ function isoToSeconds(isoDuration: string): number {
   const match = isoDuration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
   if (!match) return Infinity;
   const hours = parseInt(match[1] ?? "0", 10);
-  if (hours > 0) return Infinity;
   const minutes = parseInt(match[2] ?? "0", 10);
   const seconds = parseInt(match[3] ?? "0", 10);
-  const total = minutes * 60 + seconds;
+  const total = hours * 3600 + minutes * 60 + seconds;
   // Durée de 0 seconde = métadonnée absente ou vidéo en cours de traitement → ne pas traiter comme Short
   return total > 0 ? total : Infinity;
 }
