@@ -8,17 +8,24 @@ import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
  * Flux :
  * 1. Récupère l'ID de la playlist 'uploads' de la chaîne via channels.list
  * 2. Lit les 50 dernières vidéos via playlistItems.list (coût quota : 1 unité/appel)
- * 3. Pour chaque vidéo, insertion idempotente (create-if-not-exists) dans la table ContentPost DynamoDB
+ * 3. Détecte les YouTube Shorts via videos.list?part=contentDetails (coût quota : 1 unité)
+ *    — un Short est une vidéo de durée ≤ 3 minutes (180 secondes)
+ *    — URL stockée : youtube.com/shorts/{id} pour les Shorts,
+ *                    youtube.com/watch?v={id} pour les vidéos classiques
+ * 4. Pour chaque vidéo, insertion idempotente (create-if-not-exists) dans la table ContentPost DynamoDB
  *    (clé composite source+externalId — ConditionExpression empêche les doublons, sans mettre à jour les éléments existants)
  *
  * Quota YouTube Data API v3 :
  *   - channels.list     : 1 unité
  *   - playlistItems.list: 1 unité
- *   Total par exécution : ~2 unités (très économique, max 10 000 unités/jour)
+ *   - videos.list       : 1 unité (jusqu'à 50 IDs par appel)
+ *   Total par exécution : ~3 unités (très économique, max 10 000 unités/jour)
  */
 
 const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
 const MAX_DESCRIPTION_LENGTH = 500;
+/** Durée maximale en secondes pour qu'une vidéo soit considérée comme un Short */
+const SHORT_MAX_SECONDS = 180;
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
@@ -31,6 +38,20 @@ function getRequiredEnv(name: string): string {
   }
 
   return value;
+}
+
+/**
+ * Retourne la durée totale en secondes à partir d'une durée ISO 8601 (ex: "PT1M30S" → 90).
+ * Retourne Infinity si le format est invalide ou si la durée comporte des heures.
+ */
+function isoToSeconds(isoDuration: string): number {
+  const match = isoDuration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
+  if (!match) return Infinity;
+  const hours = parseInt(match[1] ?? "0", 10);
+  if (hours > 0) return Infinity;
+  const minutes = parseInt(match[2] ?? "0", 10);
+  const seconds = parseInt(match[3] ?? "0", 10);
+  return minutes * 60 + seconds;
 }
 
 export const handler: Handler = async () => {
@@ -62,16 +83,51 @@ export const handler: Handler = async () => {
     const playlistData = await playlistRes.json() as YouTubePlaylistResponse;
 
     const items = playlistData.items ?? [];
-    console.log(`[sync-youtube] ${items.length} vidéos récupérées.`);
+    console.log(`[sync-youtube] ${items.length} vidéo(s) récupérée(s).`);
+
+    // ── ÉTAPE 3 : détecter les YouTube Shorts via videos.list ─────────────────
+    const videoIds = items
+      .map((item) => item.snippet?.resourceId?.videoId)
+      .filter((id): id is string => Boolean(id));
+
+    const shortVideoIds = new Set<string>();
+
+    if (videoIds.length > 0) {
+      const videosRes = await fetch(
+        `${YOUTUBE_API_BASE}/videos?part=contentDetails&id=${videoIds.join(",")}&key=${API_KEY}`
+      );
+      if (!videosRes.ok) {
+        // Non bloquant : on continue sans détection Short et on utilise watch?v= par défaut
+        console.warn(
+          `[sync-youtube] videos.list HTTP ${videosRes.status} — détection Shorts ignorée, URLs watch?v= utilisées.`
+        );
+      } else {
+        const videosData = await videosRes.json() as YouTubeVideosResponse;
+        for (const video of (videosData.items ?? [])) {
+          const duration = video.contentDetails?.duration ?? "";
+          if (video.id && isoToSeconds(duration) <= SHORT_MAX_SECONDS) {
+            shortVideoIds.add(video.id);
+          }
+        }
+        console.log(
+          `[sync-youtube] ${shortVideoIds.size} Short(s) détecté(s) sur ${videoIds.length} vidéo(s).`
+        );
+      }
+    }
 
     let created = 0;
     let skipped = 0;
 
-    // ── ÉTAPE 3 : insertion idempotente dans DynamoDB ────────────────────────
+    // ── ÉTAPE 4 : insertion idempotente dans DynamoDB ────────────────────────
     for (const item of items) {
       const snippet = item.snippet;
       const videoId = snippet?.resourceId?.videoId;
       if (!videoId) continue;
+
+      const isShort = shortVideoIds.has(videoId);
+      const videoUrl = isShort
+        ? `https://www.youtube.com/shorts/${videoId}`
+        : `https://www.youtube.com/watch?v=${videoId}`;
 
       const post = {
         // Clé primaire composite DynamoDB (générée par .identifier(["source", "externalId"])) :
@@ -80,7 +136,7 @@ export const handler: Handler = async () => {
         source: "youtube",
         externalId: videoId,
         title: snippet?.title ?? "Sans titre",
-        url: `https://www.youtube.com/watch?v=${videoId}`,
+        url: videoUrl,
         publishedAt: snippet?.publishedAt ?? new Date().toISOString(),
         thumbnailUrl:
           snippet?.thumbnails?.maxres?.url ??
@@ -116,7 +172,7 @@ export const handler: Handler = async () => {
           })
         );
         created++;
-        console.log(`[sync-youtube] Ajouté : ${post.title} (${videoId})`);
+        console.log(`[sync-youtube] Ajouté (${isShort ? "Short" : "vidéo"}) : ${post.title} (${videoId})`);
       } catch (err) {
         if (
           typeof err === "object" &&
@@ -166,6 +222,15 @@ interface YouTubePlaylistResponse {
         high?: { url: string };
         maxres?: { url: string };
       };
+    };
+  }>;
+}
+
+interface YouTubeVideosResponse {
+  items?: Array<{
+    id?: string;
+    contentDetails?: {
+      duration?: string;
     };
   }>;
 }
