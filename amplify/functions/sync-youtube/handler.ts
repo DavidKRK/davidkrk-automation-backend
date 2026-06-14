@@ -42,7 +42,7 @@ function getRequiredEnv(name: string): string {
 
 /**
  * Retourne la durée totale en secondes à partir d'une durée ISO 8601 (ex: "PT1M30S" → 90).
- * Retourne Infinity pour les durées invalides, vides, ou comportant des jours/heures
+ * Retourne Infinity pour les durées invalides, vides, ou comportant des jours
  * (ces vidéos ne peuvent pas être des Shorts).
  *
  * Note : YouTube a étendu la durée maximale des Shorts à 3 minutes (180 s) en octobre 2024.
@@ -99,29 +99,36 @@ export const handler: Handler = async () => {
     const shortVideoIds = new Set<string>();
 
     if (videoIds.length > 0) {
-      const videosRes = await fetch(
-        `${YOUTUBE_API_BASE}/videos?part=contentDetails&id=${videoIds.join(",")}&key=${API_KEY}`
-      );
-      if (!videosRes.ok) {
-        // Non bloquant : on continue sans détection Short et on utilise watch?v= par défaut
-        console.warn(
-          `[sync-youtube] videos.list HTTP ${videosRes.status} — détection Shorts ignorée, URLs watch?v= utilisées.`
+      try {
+        const videosRes = await fetch(
+          `${YOUTUBE_API_BASE}/videos?part=contentDetails&id=${videoIds.join(",")}&key=${API_KEY}`
         );
-      } else {
-        const videosData = await videosRes.json() as YouTubeVideosResponse;
-        for (const video of (videosData.items ?? [])) {
-          const duration = video.contentDetails?.duration ?? "";
-          if (!duration) {
-            console.warn(
-              `[sync-youtube] Durée manquante pour la vidéo ${video.id ?? "?"} — traitée comme vidéo classique.`
-            );
+        if (!videosRes.ok) {
+          // Non bloquant : on continue sans détection Short et on utilise watch?v= par défaut
+          console.warn(
+            `[sync-youtube] videos.list HTTP ${videosRes.status} — détection Shorts ignorée, URLs watch?v= utilisées.`
+          );
+        } else {
+          const videosData = await videosRes.json() as YouTubeVideosResponse;
+          for (const video of (videosData.items ?? [])) {
+            const duration = video.contentDetails?.duration ?? "";
+            if (!duration) {
+              console.warn(
+                `[sync-youtube] Durée manquante pour la vidéo ${video.id ?? "?"} — traitée comme vidéo classique.`
+              );
+            }
+            if (video.id && isoToSeconds(duration) <= SHORT_MAX_SECONDS) {
+              shortVideoIds.add(video.id);
+            }
           }
-          if (video.id && isoToSeconds(duration) <= SHORT_MAX_SECONDS) {
-            shortVideoIds.add(video.id);
-          }
+          console.log(
+            `[sync-youtube] ${shortVideoIds.size} Short(s) détecté(s) sur ${videoIds.length} vidéo(s).`
+          );
         }
-        console.log(
-          `[sync-youtube] ${shortVideoIds.size} Short(s) détecté(s) sur ${videoIds.length} vidéo(s).`
+      } catch (err) {
+        console.warn(
+          "[sync-youtube] Échec de la détection des Shorts (erreur réseau ou de parsing) — utilisation des URLs classiques par défaut.",
+          err
         );
       }
     }
