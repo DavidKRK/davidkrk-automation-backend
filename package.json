@@ -18,7 +18,7 @@
     "aws-cdk": "^2.1118.0",
     "aws-cdk-lib": "^2.250.0",
     "constructs": "^10.6.0",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
