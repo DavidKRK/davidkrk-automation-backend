@@ -41,7 +41,7 @@ GitHub provides additional document on [forking a repository](https://help.githu
 
 ### Claude coding agent
 
-If the GitHub Actions job **`claude`** fails with `model_not_available_for_integrator`, rerun the task with **Auto** or another currently supported Claude model instead of `claude-opus-4.6`.
+If the GitHub Actions job **`claude`** fails with `model_not_available_for_integrator`, rerun the task with **Auto** or another currently supported Claude model instead of `claude-3-opus`.
 
 
 ## Finding contributions to work on
