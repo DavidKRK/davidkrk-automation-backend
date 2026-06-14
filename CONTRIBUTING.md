@@ -36,8 +36,12 @@ To send us a pull request, please:
 5. Send us a pull request, answering any default questions in the pull request interface.
 6. Pay attention to any automated CI failures reported in the pull request, and stay involved in the conversation.
 
-GitHub provides additional document on [forking a repository](https://help.github.com/articles/fork-a-repo/) and
+GitHub provides additional documentation on [forking a repository](https://help.github.com/articles/fork-a-repo/) and
 [creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
+
+### Claude coding agent
+
+If you have a GitHub Actions job named **`claude`** and it fails with `model_not_available_for_integrator`, rerun the task with **Auto** or another currently supported Claude model instead of `claude-opus-4.6`.
 
 
 ## Finding contributions to work on
