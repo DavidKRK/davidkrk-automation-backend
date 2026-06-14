@@ -13,5 +13,5 @@ supported on the current `main` branch only.
 ## Reporting a Vulnerability
 
 If you discover a potential security issue in this project, please notify
-AWS/Amazon Security via the [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/).
+AWS/Amazon Security via the [vulnerability reporting page](https://aws.amazon.com/security/vulnerability-reporting/).
 Please do **not** create a public GitHub issue.

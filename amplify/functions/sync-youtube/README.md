@@ -7,7 +7,7 @@ au format `youtube.com/shorts/{id}`.
 
 ## Fréquence
 
-Toutes les **1 heure** (configurable dans `resource.ts` → `schedule`).
+Toutes les **heures** (configurable dans `resource.ts` → `schedule`).
 
 ## Variables d'environnement
 
