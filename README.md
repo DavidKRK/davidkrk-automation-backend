@@ -9,7 +9,8 @@ Backend AWS Amplify Gen 2 pour l'automatisation de la chaîne **DavidKRK** — s
 | `auth` | Amazon Cognito | Authentification des utilisateurs |
 | `data` | AWS AppSync + DynamoDB | API GraphQL + modèles `ContentPost` et `UserUpload` |
 | `storage` | Amazon S3 | Stockage des fichiers uploadés |
-| `sync-youtube` | Lambda (planifiée) | Synchronisation YouTube toutes les 6 h |
+| `sync-youtube` | Lambda (planifiée) | Synchronisation YouTube toutes les 1 h |
+| `sync-social` | Lambda (planifiée) | Synchronisation Instagram, Twitch et TikTok toutes les 1 h |
 
 ## Modèles de données
 
@@ -58,10 +59,17 @@ npx ampx pipeline-deploy --branch <branche> --app-id <app-id>
 |----------|-------------|
 | `YOUTUBE_API_KEY` | Clé API Google Cloud (YouTube Data API v3) |
 | `YOUTUBE_CHANNEL_ID` | ID de la chaîne YouTube (commence par `UC`) |
+| `INSTAGRAM_ACCESS_TOKEN` | Token Instagram Graph API (optionnel, pour `sync-social`) |
+| `TWITCH_CLIENT_ID` | Client ID Twitch (optionnel, pour `sync-social`) |
+| `TWITCH_CLIENT_SECRET` | Client secret Twitch (optionnel, pour `sync-social`) |
+| `TWITCH_USER_ID` | User ID Twitch à synchroniser (optionnel, pour `sync-social`) |
+| `TIKTOK_ACCESS_TOKEN` | Token TikTok API (optionnel, pour `sync-social`) |
+| `SOCIAL_SYNC_LIMIT` | Nombre max de contenus récupérés par plateforme (`20` par défaut) |
 
 > ⚠️ Ne jamais committer ces valeurs dans le code source.
 
 Voir [`amplify/functions/sync-youtube/README.md`](amplify/functions/sync-youtube/README.md) pour le détail de la Lambda.
+Voir [`amplify/functions/sync-social/README.md`](amplify/functions/sync-social/README.md) pour la synchronisation multi-plateformes.
 
 ## Sécurité
 

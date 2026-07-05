@@ -39,7 +39,7 @@ const schema = a.schema({
 
   ContentPost: a
     .model({
-      /** Source du contenu : 'youtube' | 'soundcloud' | 'mixcloud' | ... */
+      /** Source du contenu : 'youtube' | 'instagram' | 'twitch' | 'tiktok' | ... */
       source: a.string().required(),
       /** ID externe de la vidéo/track (ex: YouTube videoId) — forme la clé composite avec source */
       externalId: a.string().required(),
