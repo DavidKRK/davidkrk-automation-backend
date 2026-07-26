@@ -16,7 +16,7 @@
     "@types/aws-lambda": "^8.10.149",
     "@types/node": "^20.0.0",
     "aws-cdk": "^2.1118.0",
-    "aws-cdk-lib": "^2.250.0",
+    "aws-cdk-lib": "^2.262.1",
     "constructs": "^10.6.0",
     "esbuild": "^0.28.1",
     "tsx": "^4.21.0",
