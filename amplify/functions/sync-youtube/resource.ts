@@ -3,7 +3,7 @@ import { defineFunction } from "@aws-amplify/backend";
 /**
  * Fonction planifiée : sync-youtube
  *
- * Déclenchée automatiquement toutes les heures.
+ * Déclenchée automatiquement toutes les 6 heures.
  * Elle appelle l'API YouTube Data v3 pour récupérer les dernières vidéos
  * de la chaîne DavidKRK et les insère dans le modèle ContentPost
  * uniquement si elles n'existent pas déjà (insertion idempotente, sans mise à jour).
@@ -17,6 +17,6 @@ import { defineFunction } from "@aws-amplify/backend";
 export const syncYoutube = defineFunction({
   name: "sync-youtube",
   entry: "./handler.ts",
-  schedule: "every 1h",
+  schedule: "every 6h",
   timeoutSeconds: 60,
 });

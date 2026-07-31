@@ -1,14 +1,14 @@
 {
-  "name": "amplify-backend-app-template",
+  "name": "davidkrk-automation-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend AWS Amplify Gen 2 pour l'automatisation de la chaîne DavidKRK.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "typecheck": "tsc --noEmit --project amplify/tsconfig.json"
   },
   "keywords": [],
-  "author": "",
+  "author": "David KRK",
   "license": "MIT-0",
   "devDependencies": {
     "@aws-amplify/backend": "^1.22.0",
@@ -20,7 +20,7 @@
     "constructs": "^10.6.0",
     "esbuild": "^0.28.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.7.3"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1049.0",
