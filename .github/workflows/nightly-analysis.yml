@@ -88,15 +88,16 @@ jobs:
             echo ""
             echo "### Secrets potentiels (patterns sensibles)"
             echo ""
-            grep -rn --include="*.ts" --include="*.js" --include="*.json" \
+            grep -rln --include="*.ts" --include="*.js" --include="*.json" \
               -iE "(api[_-]?key|secret|password|token)\s*[:=]" . \
-              --exclude-dir=node_modules --exclude-dir=.git --exclude="package-lock.json" || echo "Aucun trouvé ✅"
+              --exclude-dir=node_modules --exclude-dir=.git --exclude="package-lock.json" \
+              | sed 's/^/⚠️ Pattern sensible détecté dans : /' || echo "Aucun trouvé ✅"
           } > /tmp/patterns-output.txt
 
       - name: Génération du compte rendu
         run: |
-          TYPECHECK_EXIT="${{ steps.typecheck.outputs.exit_code }}"
-          AUDIT_EXIT="${{ steps.audit.outputs.exit_code }}"
+          TYPECHECK_EXIT="${{ steps.typecheck.outputs.exit_code || '0' }}"
+          AUDIT_EXIT="${{ steps.audit.outputs.exit_code || '0' }}"
           DATE=$(date +"%d/%m/%Y à %Hh%M")
 
           cat > /tmp/report.md << 'HEADER'
@@ -196,11 +197,12 @@ jobs:
           *Généré automatiquement par le workflow **Analyse Nocturne** 🤖*
           EOF
 
-      - name: Créer une issue avec le rapport
+      - name: Créer ou mettre à jour l'issue avec le rapport
         uses: peter-evans/create-issue-from-file@v5
         with:
-          title: "🔍 Rapport d'Analyse Nocturne — ${{ github.run_id }}"
+          title: "🔍 Rapport d'Analyse Nocturne"
           content-filepath: /tmp/report.md
           labels: |
             analyse-nocturne
             automatique
+          update-existing: true
