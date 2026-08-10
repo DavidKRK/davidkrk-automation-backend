@@ -20,6 +20,8 @@ export interface StreamSessionRecord {
   plannedEndAt?: string;
   status: string;
   destinationsJson?: string;
+  resultsJson?: string;
+  lastError?: string;
 }
 
 export interface ConnectorResult {

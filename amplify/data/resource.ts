@@ -39,8 +39,11 @@ const schema = a.schema({
       /** Dernière synchronisation des métadonnées */
       lastSyncedAt: a.string(),
     })
+    .secondaryIndexes((index) => [
+      index("status").name("byStatus").projection("ALL"),
+    ])
     .authorization((allow) => [
-      allow.owner(),
+      allow.groups(["admin"]),
     ]),
 
   /**
@@ -73,8 +76,11 @@ const schema = a.schema({
       /** Dernière erreur globale */
       lastError: a.string(),
     })
+    .secondaryIndexes((index) => [
+      index("status").name("byStatus").projection("ALL"),
+    ])
     .authorization((allow) => [
-      allow.owner(),
+      allow.groups(["admin"]),
     ]),
 
   /**

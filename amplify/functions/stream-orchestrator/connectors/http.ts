@@ -20,13 +20,22 @@ export async function callConnectorWebhook(
     };
   }
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown network error";
+    return {
+      success: false,
+      message: `Webhook call failed: ${message}`,
+    };
+  }
 
   if (!response.ok) {
     return {

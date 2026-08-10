@@ -3,7 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
   PutCommand,
-  ScanCommand,
+  QueryCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 
@@ -17,6 +17,7 @@ interface StreamSessionRecord {
 }
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const STREAM_SESSION_STATUS_INDEX = "byStatus";
 
 function getRequiredEnv(name: string): string {
   const value = process.env[name];
@@ -29,20 +30,31 @@ function getRequiredEnv(name: string): string {
 }
 
 async function listEndedSessions(tableName: string): Promise<StreamSessionRecord[]> {
-  const result = await dynamo.send(
-    new ScanCommand({
-      TableName: tableName,
-      FilterExpression: "#status = :ended AND attribute_not_exists(postLiveProcessedAt)",
-      ExpressionAttributeNames: {
-        "#status": "status",
-      },
-      ExpressionAttributeValues: {
-        ":ended": "ended",
-      },
-    })
-  );
+  const items: StreamSessionRecord[] = [];
+  let exclusiveStartKey: Record<string, unknown> | undefined;
 
-  return (result.Items as StreamSessionRecord[] | undefined) ?? [];
+  do {
+    const result = await dynamo.send(
+      new QueryCommand({
+        TableName: tableName,
+        IndexName: STREAM_SESSION_STATUS_INDEX,
+        KeyConditionExpression: "#status = :ended",
+        FilterExpression: "attribute_not_exists(postLiveProcessedAt)",
+        ExpressionAttributeNames: {
+          "#status": "status",
+        },
+        ExpressionAttributeValues: {
+          ":ended": "ended",
+        },
+        ExclusiveStartKey: exclusiveStartKey,
+      })
+    );
+
+    items.push(...((result.Items as StreamSessionRecord[] | undefined) ?? []));
+    exclusiveStartKey = result.LastEvaluatedKey as Record<string, unknown> | undefined;
+  } while (exclusiveStartKey);
+
+  return items;
 }
 
 async function publishArchivePost(

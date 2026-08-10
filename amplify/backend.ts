@@ -69,6 +69,7 @@ if (!postLiveMaintenanceFunction) {
     'Missing Lambda resource for "postLiveMaintenance" at backend.postLiveMaintenance.resources.lambda. Verify that the function resource is defined and generated as expected.'
   );
 }
+
 // Accorde à la Lambda les droits de lecture/écriture sur la table DynamoDB
 contentPostTable.grantReadWriteData(lambdaFunction);
 streamDestinationTable.grantReadData(streamOrchestratorFunction);
