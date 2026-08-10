@@ -159,31 +159,48 @@ async function updateSession(
   sessionId: string,
   status: string,
   results: Record<string, ConnectorResult>,
+  expectedStatus: string,
   lastError?: string,
   markStarted = false,
   markEnded = false
-): Promise<void> {
+): Promise<boolean> {
   const now = new Date().toISOString();
 
-  await dynamo.send(
-    new UpdateCommand({
-      TableName: tableName,
-      Key: { id: sessionId },
-      UpdateExpression:
-        "SET #status = :status, resultsJson = :results, lastError = :lastError, updatedAt = :now"
-        + (markStarted ? ", startedAt = :now" : "")
-        + (markEnded ? ", endedAt = :now" : ""),
-      ExpressionAttributeNames: {
-        "#status": "status",
-      },
-      ExpressionAttributeValues: {
-        ":status": status,
-        ":results": JSON.stringify(results),
-        ":lastError": lastError ?? null,
-        ":now": now,
-      },
-    })
-  );
+  try {
+    await dynamo.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: { id: sessionId },
+        UpdateExpression:
+          "SET #status = :status, resultsJson = :results, lastError = :lastError, updatedAt = :now"
+          + (markStarted ? ", startedAt = :now" : "")
+          + (markEnded ? ", endedAt = :now" : ""),
+        ConditionExpression: "#status = :expectedStatus",
+        ExpressionAttributeNames: {
+          "#status": "status",
+        },
+        ExpressionAttributeValues: {
+          ":status": status,
+          ":results": JSON.stringify(results),
+          ":lastError": lastError ?? null,
+          ":now": now,
+          ":expectedStatus": expectedStatus,
+        },
+      })
+    );
+    return true;
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "name" in error &&
+      (error as { name: string }).name === "ConditionalCheckFailedException"
+    ) {
+      // Another concurrent invocation already transitioned this session; skip it.
+      return false;
+    }
+    throw error;
+  }
 }
 
 async function runPhase(
@@ -232,6 +249,7 @@ export const handler: Handler = async () => {
         session.id,
         "failed",
         existingResults,
+        session.status,
         "Invalid destinationsJson: expected a JSON array of destination IDs"
       );
       continue;
@@ -244,6 +262,7 @@ export const handler: Handler = async () => {
         session.id,
         "failed",
         existingResults,
+        session.status,
         "Invalid plannedStartAt timestamp"
       );
       continue;
@@ -256,6 +275,7 @@ export const handler: Handler = async () => {
         session.id,
         "failed",
         existingResults,
+        session.status,
         "Invalid plannedEndAt timestamp"
       );
       continue;
@@ -274,6 +294,7 @@ export const handler: Handler = async () => {
         session.id,
         "failed",
         existingResults,
+        session.status,
         "No enabled stream destinations available"
       );
       continue;
@@ -286,34 +307,36 @@ export const handler: Handler = async () => {
 
       const { results: phaseResults, failures } = await runPhase("prepareLive", session, selectedDestinations);
       const mergedResults = { ...existingResults, ...phaseResults };
-      await updateSession(
+      const updated = await updateSession(
         sessionTableName,
         session.id,
         failures.length > 0 ? "failed" : "starting",
         mergedResults,
+        session.status,
         failures[0]
       );
-      continue;
+      if (!updated) continue;
     }
 
     if (session.status === "starting") {
       const { results: phaseResults, failures } = await runPhase("startLive", session, selectedDestinations);
       const mergedResults = { ...existingResults, ...phaseResults };
-      await updateSession(
+      const updated = await updateSession(
         sessionTableName,
         session.id,
         failures.length > 0 ? "failed" : "live",
         mergedResults,
+        session.status,
         failures[0],
         failures.length === 0,
         false
       );
-      continue;
+      if (!updated) continue;
     }
 
     if (session.status === "live" && shouldStop) {
-      await updateSession(sessionTableName, session.id, "ending", existingResults, undefined, false, false);
-      continue;
+      const updated = await updateSession(sessionTableName, session.id, "ending", existingResults, session.status, undefined, false, false);
+      if (!updated) continue;
     }
 
     if (session.status === "ending") {
@@ -324,6 +347,7 @@ export const handler: Handler = async () => {
         session.id,
         failures.length > 0 ? "failed" : "ended",
         mergedResults,
+        session.status,
         failures[0],
         false,
         failures.length === 0
