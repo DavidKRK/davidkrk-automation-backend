@@ -1,0 +1,208 @@
+name: "🔍 Analyse Nocturne du Dépôt"
+
+on:
+  schedule:
+    # Tous les jours à 2h du matin (UTC)
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  analyse-depot:
+    name: "Analyse complète du dépôt"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Installation des dépendances
+        run: npm ci
+
+      - name: Vérification TypeScript (typecheck)
+        id: typecheck
+        continue-on-error: true
+        run: |
+          npm run typecheck 2>&1 | tee /tmp/typecheck-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Audit de sécurité des dépendances
+        id: audit
+        continue-on-error: true
+        run: |
+          npm audit 2>&1 | tee /tmp/audit-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Vérification des dépendances obsolètes
+        id: outdated
+        continue-on-error: true
+        run: |
+          npm outdated 2>&1 | tee /tmp/outdated-output.txt || true
+
+      - name: Analyse de la structure du projet
+        id: structure
+        run: |
+          {
+            echo "## Fichiers détectés"
+            echo ""
+            echo '```'
+            find . -type f \
+              -not -path './.git/*' \
+              -not -path './node_modules/*' \
+              | sort
+            echo '```'
+            echo ""
+            echo "## Fichiers volumineux (> 500 Ko)"
+            echo ""
+            find . -type f \
+              -not -path './.git/*' \
+              -not -path './node_modules/*' \
+              -size +500k \
+              -exec ls -lh {} \; || echo "Aucun fichier volumineux détecté."
+          } > /tmp/structure-output.txt
+
+      - name: Recherche de patterns problématiques
+        id: patterns
+        run: |
+          {
+            echo "### TODO / FIXME / HACK restants"
+            echo ""
+            grep -rn --include="*.ts" --include="*.js" --include="*.json" \
+              -E "(TODO|FIXME|HACK|XXX|WARN)" . \
+              --exclude-dir=node_modules --exclude-dir=.git || echo "Aucun trouvé ✅"
+            echo ""
+            echo "### Console.log restants"
+            echo ""
+            grep -rn --include="*.ts" --include="*.js" \
+              "console\\.log" . \
+              --exclude-dir=node_modules --exclude-dir=.git || echo "Aucun trouvé ✅"
+            echo ""
+            echo "### Secrets potentiels (patterns sensibles)"
+            echo ""
+            grep -rln --include="*.ts" --include="*.js" --include="*.json" \
+              -iE "(api[_-]?key|secret|password|token)\s*[:=]" . \
+              --exclude-dir=node_modules --exclude-dir=.git --exclude="package-lock.json" \
+              | sed 's/^/⚠️ Pattern sensible détecté dans : /' || echo "Aucun trouvé ✅"
+          } > /tmp/patterns-output.txt
+
+      - name: Génération du compte rendu
+        run: |
+          TYPECHECK_EXIT="${{ steps.typecheck.outputs.exit_code || '0' }}"
+          AUDIT_EXIT="${{ steps.audit.outputs.exit_code || '0' }}"
+          DATE=$(date +"%d/%m/%Y à %Hh%M")
+
+          cat > /tmp/report.md << 'HEADER'
+          # 🔍 Rapport d'Analyse Nocturne du Dépôt
+
+          HEADER
+
+          cat >> /tmp/report.md << EOF
+          **Date :** ${DATE} (UTC)
+          **Branche analysée :** \`${{ github.ref_name }}\`
+
+          ---
+
+          ## 📋 Résumé Exécutif
+
+          | Vérification | Statut |
+          |---|---|
+          | TypeScript (typecheck) | $([ "$TYPECHECK_EXIT" = "0" ] && echo "✅ OK" || echo "❌ Erreurs détectées") |
+          | Audit sécurité (npm audit) | $([ "$AUDIT_EXIT" = "0" ] && echo "✅ OK" || echo "⚠️ Vulnérabilités détectées") |
+
+          ---
+
+          ## 🔴 Erreurs TypeScript
+
+          EOF
+
+          if [ "$TYPECHECK_EXIT" != "0" ]; then
+            echo '```' >> /tmp/report.md
+            cat /tmp/typecheck-output.txt >> /tmp/report.md
+            echo '```' >> /tmp/report.md
+          else
+            echo "> Aucune erreur TypeScript détectée. Le code compile correctement. ✅" >> /tmp/report.md
+          fi
+
+          cat >> /tmp/report.md << 'EOF'
+
+          ---
+
+          ## 🛡️ Audit de Sécurité (npm audit)
+
+          EOF
+
+          if [ "$AUDIT_EXIT" != "0" ]; then
+            echo '```' >> /tmp/report.md
+            cat /tmp/audit-output.txt >> /tmp/report.md
+            echo '```' >> /tmp/report.md
+          else
+            echo "> Aucune vulnérabilité connue dans les dépendances. ✅" >> /tmp/report.md
+          fi
+
+          cat >> /tmp/report.md << 'EOF'
+
+          ---
+
+          ## 📦 Dépendances Obsolètes
+
+          EOF
+
+          if [ -s /tmp/outdated-output.txt ]; then
+            echo '```' >> /tmp/report.md
+            cat /tmp/outdated-output.txt >> /tmp/report.md
+            echo '```' >> /tmp/report.md
+          else
+            echo "> Toutes les dépendances sont à jour. ✅" >> /tmp/report.md
+          fi
+
+          cat >> /tmp/report.md << 'EOF'
+
+          ---
+
+          ## ⚠️ Patterns Problématiques
+
+          EOF
+
+          cat /tmp/patterns-output.txt >> /tmp/report.md
+
+          cat >> /tmp/report.md << 'EOF'
+
+          ---
+
+          ## 🗂️ Structure du Projet
+
+          EOF
+
+          cat /tmp/structure-output.txt >> /tmp/report.md
+
+          cat >> /tmp/report.md << 'EOF'
+
+          ---
+
+          ## 💡 Recommandations
+
+          > Ce rapport est généré automatiquement chaque nuit à 2h00 UTC.
+          > Consultez les sections ci-dessus et corrigez les éléments marqués ❌ ou ⚠️ en priorité.
+
+          ---
+          *Généré automatiquement par le workflow **Analyse Nocturne** 🤖*
+          EOF
+
+      - name: Créer ou mettre à jour l'issue avec le rapport
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "🔍 Rapport d'Analyse Nocturne"
+          content-filepath: /tmp/report.md
+          labels: |
+            analyse-nocturne
+            automatique
+          update-existing: true
