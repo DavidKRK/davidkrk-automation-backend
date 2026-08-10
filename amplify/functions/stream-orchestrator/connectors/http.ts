@@ -6,9 +6,17 @@ export async function callConnectorWebhook(
   fallbackMessage: string
 ): Promise<ConnectorResult> {
   if (!endpoint) {
+    if (process.env.ALLOW_SIMULATED_CONNECTORS === "true") {
+      return {
+        success: true,
+        message: fallbackMessage,
+      };
+    }
+
     return {
-      success: true,
-      message: fallbackMessage,
+      success: false,
+      message:
+        "Missing connector webhook URL. Set platform webhook URL or ALLOW_SIMULATED_CONNECTORS=true.",
     };
   }
 
