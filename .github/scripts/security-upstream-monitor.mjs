@@ -15,6 +15,13 @@ if (!exception) {
   process.exit(1);
 }
 
+const requiredFields = ["id", "package", "nodePathContains", "advisory", "severity", "owner", "expiresOn"];
+const missingFields = requiredFields.filter((f) => !exception[f]);
+if (missingFields.length > 0) {
+  console.error(`Champs obligatoires manquants dans l'exception: ${missingFields.join(", ")}`);
+  process.exit(1);
+}
+
 const lock = JSON.parse(fs.readFileSync("package-lock.json", "utf8"));
 const installed = lock.packages?.["node_modules/aws-cdk-lib"]?.version;
 if (!installed) {
@@ -22,13 +29,19 @@ if (!installed) {
   process.exit(1);
 }
 
-const latest = execSync("npm view aws-cdk-lib version", { encoding: "utf8" }).trim();
+let latest;
+try {
+  latest = execSync("npm view aws-cdk-lib version", { encoding: "utf8" }).trim();
+} catch (err) {
+  console.error(`Impossible de récupérer la version npm de aws-cdk-lib: ${err.message}`);
+  process.exit(1);
+}
 
 const brace = audit.vulnerabilities?.["brace-expansion"];
 const stillPresent =
   Boolean(brace) &&
   (brace.nodes ?? []).some((node) =>
-    node.includes("node_modules/aws-cdk-lib/node_modules/brace-expansion")
+    node.includes(exception.nodePathContains)
   );
 
 const today = new Date().toISOString().slice(0, 10);

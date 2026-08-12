@@ -21,7 +21,7 @@ Please do **not** create a public GitHub issue.
 This repository enforces CI blocking for **high/critical direct vulnerabilities**.
 
 One temporary exception is currently tracked in:
-- `/home/runner/work/davidkrk-automation-backend/davidkrk-automation-backend/.github/security/audit-exceptions.json`
+- `.github/security/audit-exceptions.json`
 
 Current accepted risk:
 - `brace-expansion` via `aws-cdk-lib` is transitive in the build/tooling chain.
