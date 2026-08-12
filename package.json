@@ -26,5 +26,9 @@
     "@aws-sdk/client-dynamodb": "^3.1049.0",
     "@aws-sdk/lib-dynamodb": "^3.1049.0",
     "aws-amplify": "^6.17.0"
+  },
+  "overrides": {
+    "lodash": "^4.17.24",
+    "immutable": "^4.3.9"
   }
 }
