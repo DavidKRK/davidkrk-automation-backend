@@ -139,7 +139,7 @@ const schema = a.schema({
     .identifier(["source", "externalId"])
     .authorization((allow) => [
       // Lecture publique via API Key (ton site front)
-      allow.publicApiKey().to(["read", "list"]),
+      allow.publicApiKey().to(["read"]),
     ]),
 });
 
