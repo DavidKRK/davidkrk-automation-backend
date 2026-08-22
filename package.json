@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "typecheck": "tsc --noEmit --project amplify/tsconfig.json"
+    "typecheck": "tsc --noEmit --project amplify/tsconfig.json",
+    "check": "npm run typecheck && npm audit"
   },
   "keywords": [],
   "author": "David KRK",
@@ -16,7 +17,7 @@
     "@types/aws-lambda": "^8.10.149",
     "@types/node": "^20.0.0",
     "aws-cdk": "^2.1118.0",
-    "aws-cdk-lib": "^2.262.1",
+    "aws-cdk-lib": "^2.266.0",
     "constructs": "^10.6.0",
     "esbuild": "^0.28.1",
     "tsx": "^4.21.0",
