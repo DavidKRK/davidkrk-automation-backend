@@ -28,7 +28,7 @@ jobs:
           cache: "npm"
 
       - name: Installation des dépendances
-        run: npm ci
+        run: npm install
 
       - name: Vérifier l'usage de glob sans entrée non fiable
         run: node .github/scripts/no-untrusted-glob-patterns.mjs
@@ -55,7 +55,7 @@ jobs:
           cache: "npm"
 
       - name: Installation des dépendances
-        run: npm ci
+        run: npm install
 
       - name: Générer le rapport audit JSON
         run: npm audit --json > audit.json || true
