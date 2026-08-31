@@ -26,7 +26,7 @@ jobs:
           cache: "npm"
 
       - name: Installation des dépendances
-        run: npm ci
+        run: npm install
 
       - name: Vérification TypeScript (typecheck)
         id: typecheck
