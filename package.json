@@ -36,6 +36,7 @@
   },
   "overrides": {
     "lodash": "^4.17.24",
-    "immutable": "^4.3.9"
+    "immutable": "^4.3.9",
+    "mysql2": "^3.24.1"
   }
 }
