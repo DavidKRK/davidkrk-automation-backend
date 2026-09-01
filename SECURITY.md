@@ -15,3 +15,20 @@ supported on the current `main` branch only.
 If you discover a potential security issue in this project, please notify
 AWS/Amazon Security via the [vulnerability reporting page](https://aws.amazon.com/security/vulnerability-reporting/).
 Please do **not** create a public GitHub issue.
+
+## Temporary Audit Exceptions
+
+This repository enforces CI blocking for **high/critical direct vulnerabilities**.
+
+One temporary exception is currently tracked in:
+- `.github/security/audit-exceptions.json`
+
+Current accepted risk:
+- `brace-expansion` via `aws-cdk-lib` is transitive in the build/tooling chain.
+- It is treated as **non-exploitable in production runtime** for the exposed API.
+
+Exception lifecycle requirements:
+- Owner, advisory, linked issue, and expiration date are mandatory.
+- Weekly monitoring checks upstream (`aws-cdk-lib`) and forces follow-up when a new version is available.
+- If the targeted vulnerability disappears from audit results, the exception must be removed immediately.
+- On expiry, CI fails until the exception is removed or renewed with explicit justification.
