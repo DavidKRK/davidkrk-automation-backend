@@ -12,8 +12,8 @@
   "author": "David KRK",
   "license": "MIT-0",
   "devDependencies": {
-    "@aws-amplify/backend": "^1.22.0",
-    "@aws-amplify/backend-cli": "^1.8.2",
+    "@aws-amplify/backend": "^1.24.0",
+    "@aws-amplify/backend-cli": "^1.9.0",
     "@types/aws-lambda": "^8.10.149",
     "@types/node": "^20.0.0",
     "aws-cdk": "^2.1118.0",
@@ -24,6 +24,12 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
+    "@aws-amplify/backend-auth": "^1.9.4",
+    "@aws-amplify/backend-data": "^1.8.0",
+    "@aws-amplify/backend-function": "^1.18.2",
+    "@aws-amplify/backend-storage": "^1.5.0",
+    "@aws-amplify/data-construct": "^1.17.7",
+    "@aws-amplify/graphql-api-construct": "^1.22.2",
     "@aws-sdk/client-dynamodb": "^3.1049.0",
     "@aws-sdk/lib-dynamodb": "^3.1049.0",
     "aws-amplify": "^6.17.0"
