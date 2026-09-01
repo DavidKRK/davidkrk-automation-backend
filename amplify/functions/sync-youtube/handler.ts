@@ -62,13 +62,13 @@ function isoToSeconds(isoDuration: string): number {
 
 export const handler: Handler = async () => {
   const TABLE_NAME = getRequiredEnv("CONTENT_POST_TABLE_NAME");
-  const API_KEY = getRequiredEnv("YOUTUBE_API_KEY");
+  const youtubeCredential = getRequiredEnv("YOUTUBE_API_KEY");
   const CHANNEL_ID = getRequiredEnv("YOUTUBE_CHANNEL_ID");
 
   try {
     // ── ÉTAPE 1 : récupérer l'ID de la playlist 'uploads' ────────────────────
     const channelRes = await fetch(
-      `${YOUTUBE_API_BASE}/channels?part=contentDetails&id=${CHANNEL_ID}&key=${API_KEY}`
+      `${YOUTUBE_API_BASE}/channels?part=contentDetails&id=${CHANNEL_ID}&key=${youtubeCredential}`
     );
     if (!channelRes.ok) throw new Error(`channels.list HTTP ${channelRes.status}`);
     const channelData = await channelRes.json() as YouTubeChannelResponse;
@@ -79,17 +79,17 @@ export const handler: Handler = async () => {
     if (!uploadsPlaylistId) {
       throw new Error(`Playlist 'uploads' introuvable pour la chaîne ${CHANNEL_ID}`);
     }
-    console.log(`[sync-youtube] Playlist uploads : ${uploadsPlaylistId}`);
+    console.info(`[sync-youtube] Playlist uploads : ${uploadsPlaylistId}`);
 
     // ── ÉTAPE 2 : récupérer les 50 dernières vidéos ──────────────────────────
     const playlistRes = await fetch(
-      `${YOUTUBE_API_BASE}/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=50&key=${API_KEY}`
+      `${YOUTUBE_API_BASE}/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=50&key=${youtubeCredential}`
     );
     if (!playlistRes.ok) throw new Error(`playlistItems.list HTTP ${playlistRes.status}`);
     const playlistData = await playlistRes.json() as YouTubePlaylistResponse;
 
     const items = playlistData.items ?? [];
-    console.log(`[sync-youtube] ${items.length} vidéo(s) récupérée(s).`);
+    console.info(`[sync-youtube] ${items.length} vidéo(s) récupérée(s).`);
 
     // ── ÉTAPE 3 : détecter les YouTube Shorts via videos.list ─────────────────
     const videoIds = items
@@ -101,7 +101,7 @@ export const handler: Handler = async () => {
     if (videoIds.length > 0) {
       try {
         const videosRes = await fetch(
-          `${YOUTUBE_API_BASE}/videos?part=contentDetails&id=${videoIds.join(",")}&key=${API_KEY}`
+          `${YOUTUBE_API_BASE}/videos?part=contentDetails&id=${videoIds.join(",")}&key=${youtubeCredential}`
         );
         if (!videosRes.ok) {
           // Non bloquant : on continue sans détection Short et on utilise watch?v= par défaut
@@ -121,7 +121,7 @@ export const handler: Handler = async () => {
               shortVideoIds.add(video.id);
             }
           }
-          console.log(
+          console.info(
             `[sync-youtube] ${shortVideoIds.size} Short(s) détecté(s) sur ${videoIds.length} vidéo(s).`
           );
         }
@@ -190,7 +190,7 @@ export const handler: Handler = async () => {
           })
         );
         created++;
-        console.log(`[sync-youtube] Ajouté (${isShort ? "Short" : "vidéo"}) : ${post.title} (${videoId})`);
+        console.info(`[sync-youtube] Ajouté (${isShort ? "Short" : "vidéo"}) : ${post.title} (${videoId})`);
       } catch (err) {
         if (
           typeof err === "object" &&
@@ -199,14 +199,14 @@ export const handler: Handler = async () => {
           err.name === "ConditionalCheckFailedException"
         ) {
           skipped++;
-          console.log(`[sync-youtube] Déjà présente, ignorée : ${post.title} (${videoId})`);
+          console.info(`[sync-youtube] Déjà présente, ignorée : ${post.title} (${videoId})`);
           continue;
         }
         throw err;
       }
     }
 
-    console.log(
+    console.info(
       `[sync-youtube] Terminé — ${created} créées, ${skipped} déjà présentes.`
     );
     return { statusCode: 200, body: `${created} vidéos ajoutées.` };
