@@ -23,18 +23,7 @@ This repository enforces CI blocking for **high/critical direct vulnerabilities*
 Temporary exceptions are tracked in:
 - `.github/security/audit-exceptions.json`
 
-There is currently **one temporary accepted risk**:
-
-- `csv-parse` (`GHSA-8cw4-87c7-c6xx`) remains transitively pinned below the fixed
-  range by `@aws-amplify/backend-cli@1.10.0` through
-  `@aws-amplify/schema-generator@1.4.1` ->
-  `@aws-amplify/graphql-schema-generator@0.11.16` -> `csv-parse@5.6.0`
-  (revalidated on `2026-09-12`).
-- Dependabot ignores only `csv-parse` for this repository while follow-up issue
-  `#98` tracks removal of the exception.
-- The scheduled upstream monitor reports when a new published
-  `@aws-amplify/backend-cli` version appears, and fails if the vulnerability
-  disappears from `npm audit` or if the exception expires.
+There are currently **no temporary accepted risks**.
 
 Exception lifecycle requirements:
 - Owner, advisory, linked issue, and expiration date are mandatory.
