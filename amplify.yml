@@ -3,8 +3,7 @@ backend:
   phases:
     preBuild:
       commands:
-        - apt-get update
-        - apt-get install -y libatomic1
+        - sudo yum install -y libatomic
         - nvm install 26
         - nvm use 26
         - node -v
