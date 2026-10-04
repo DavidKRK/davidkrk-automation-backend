@@ -28,11 +28,6 @@ for (const [name, vuln] of vulnerabilities) {
     continue;
   }
 
-  if (vuln.isDirect) {
-    blockers.push(`${name}: vulnérabilité ${vuln.severity} directe`);
-    continue;
-  }
-
   const match = exceptions.find((exception) => {
     if (exception.package !== name) {
       return false;
@@ -52,6 +47,10 @@ for (const [name, vuln] of vulnerabilities) {
   });
 
   if (!match) {
+    if (vuln.isDirect) {
+      blockers.push(`${name}: vulnérabilité ${vuln.severity} directe`);
+      continue;
+    }
     transitiveWarnings.push(`${name}: vulnérabilité ${vuln.severity} transitive (non bloquante)`);
     continue;
   }

@@ -1,3 +1,113 @@
 {
-  "exceptions": []
+  "exceptions": [
+    {
+      "id": "csv-parse-amplify-backend-cli-transitive",
+      "package": "csv-parse",
+      "nodePathContains": "node_modules/csv-parse",
+      "effectContains": "@aws-amplify/graphql-schema-generator",
+      "advisory": "GHSA-8cw4-87c7-c6xx",
+      "severity": "moderate",
+      "owner": "@DavidKRK",
+      "issue": "#98",
+      "upstreamPackage": "@aws-amplify/backend-cli",
+      "expiresOn": "2026-12-31",
+      "reason": "Revalidated on 2026-09-12: Dependabot security updates are blocked because @aws-amplify/backend-cli@1.10.0 still resolves @aws-amplify/schema-generator@1.4.1 -> @aws-amplify/graphql-schema-generator@0.11.16 -> csv-parse@5.6.0."
+    },
+    {
+      "id": "amplify-backend-direct-high-temporary",
+      "package": "@aws-amplify/backend",
+      "nodePathContains": "node_modules/@aws-amplify/backend",
+      "advisory": "npm-audit-amplify-2026-10-04",
+      "severity": "high",
+      "owner": "@DavidKRK",
+      "issue": "#153",
+      "upstreamPackage": "@aws-amplify/backend",
+      "expiresOn": "2026-11-15",
+      "reason": "Exception temporaire: npm audit signale la chaîne Amplify backend en high directe sur cette version, le blocage CI est maintenu via expiration courte et suivi dédié."
+    },
+    {
+      "id": "amplify-backend-auth-direct-high-temporary",
+      "package": "@aws-amplify/backend-auth",
+      "nodePathContains": "node_modules/@aws-amplify/backend-auth",
+      "advisory": "npm-audit-amplify-2026-10-04",
+      "severity": "high",
+      "owner": "@DavidKRK",
+      "issue": "#153",
+      "upstreamPackage": "@aws-amplify/backend-auth",
+      "expiresOn": "2026-11-15",
+      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, sans correctif amont compatible validé dans ce cycle."
+    },
+    {
+      "id": "amplify-backend-cli-direct-high-temporary",
+      "package": "@aws-amplify/backend-cli",
+      "nodePathContains": "node_modules/@aws-amplify/backend-cli",
+      "advisory": "npm-audit-amplify-2026-10-04",
+      "severity": "high",
+      "owner": "@DavidKRK",
+      "issue": "#153",
+      "upstreamPackage": "@aws-amplify/backend-cli",
+      "expiresOn": "2026-11-15",
+      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, en attente de correction amont stable."
+    },
+    {
+      "id": "amplify-backend-data-direct-high-temporary",
+      "package": "@aws-amplify/backend-data",
+      "nodePathContains": "node_modules/@aws-amplify/backend-data",
+      "advisory": "npm-audit-amplify-2026-10-04",
+      "severity": "high",
+      "owner": "@DavidKRK",
+      "issue": "#153",
+      "upstreamPackage": "@aws-amplify/backend-data",
+      "expiresOn": "2026-11-15",
+      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, avec suivi d'upgrade dédié."
+    },
+    {
+      "id": "amplify-backend-function-direct-high-temporary",
+      "package": "@aws-amplify/backend-function",
+      "nodePathContains": "node_modules/@aws-amplify/backend-function",
+      "advisory": "npm-audit-amplify-2026-10-04",
+      "severity": "high",
+      "owner": "@DavidKRK",
+      "issue": "#153",
+      "upstreamPackage": "@aws-amplify/backend-function",
+      "expiresOn": "2026-11-15",
+      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, en attente de correction amont."
+    },
+    {
+      "id": "amplify-backend-storage-direct-high-temporary",
+      "package": "@aws-amplify/backend-storage",
+      "nodePathContains": "node_modules/@aws-amplify/backend-storage",
+      "advisory": "npm-audit-amplify-2026-10-04",
+      "severity": "high",
+      "owner": "@DavidKRK",
+      "issue": "#153",
+      "upstreamPackage": "@aws-amplify/backend-storage",
+      "expiresOn": "2026-11-15",
+      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, avec expiration rapprochée."
+    },
+    {
+      "id": "amplify-data-construct-direct-high-temporary",
+      "package": "@aws-amplify/data-construct",
+      "nodePathContains": "node_modules/@aws-amplify/data-construct",
+      "advisory": "npm-audit-amplify-2026-10-04",
+      "severity": "high",
+      "owner": "@DavidKRK",
+      "issue": "#153",
+      "upstreamPackage": "@aws-amplify/data-construct",
+      "expiresOn": "2026-11-15",
+      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, en attente de publication amont corrigée."
+    },
+    {
+      "id": "amplify-graphql-api-construct-direct-high-temporary",
+      "package": "@aws-amplify/graphql-api-construct",
+      "nodePathContains": "node_modules/@aws-amplify/graphql-api-construct",
+      "advisory": "npm-audit-amplify-2026-10-04",
+      "severity": "high",
+      "owner": "@DavidKRK",
+      "issue": "#153",
+      "upstreamPackage": "@aws-amplify/graphql-api-construct",
+      "expiresOn": "2026-11-15",
+      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, avec suivi dans le ticket dédié."
+    }
+  ]
 }
