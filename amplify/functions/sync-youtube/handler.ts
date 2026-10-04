@@ -26,7 +26,8 @@ const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
 const MAX_DESCRIPTION_LENGTH = 500;
 /** Durée maximale en secondes pour qu'une vidéo soit considérée comme un Short */
 const SHORT_MAX_SECONDS = 180;
-
+const MAX_RESULTS_PER_PAGE = 50;
+const MAX_PAGES_PER_RUN = 10;
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 function getRequiredEnv(name: string): string {
@@ -82,13 +83,60 @@ export const handler: Handler = async () => {
     console.info(`[sync-youtube] Playlist uploads : ${uploadsPlaylistId}`);
 
     // ── ÉTAPE 2 : récupérer les 50 dernières vidéos ──────────────────────────
-    const playlistRes = await fetch(
-      `${YOUTUBE_API_BASE}/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=50&key=${youtubeCredential}`
-    );
-    if (!playlistRes.ok) throw new Error(`playlistItems.list HTTP ${playlistRes.status}`);
-    const playlistData = await playlistRes.json() as YouTubePlaylistResponse;
+    type YouTubePlaylistItem =
+  NonNullable<YouTubePlaylistResponse["items"]>[number];
 
-    const items = playlistData.items ?? [];
+const items: YouTubePlaylistItem[] = [];
+let pageToken: string | undefined;
+let pagesFetched = 0;
+
+do {
+  const playlistUrl = new URL(`${YOUTUBE_API_BASE}/playlistItems`);
+
+  playlistUrl.searchParams.set("part", "snippet");
+  playlistUrl.searchParams.set("playlistId", uploadsPlaylistId);
+  playlistUrl.searchParams.set(
+    "maxResults",
+    String(MAX_RESULTS_PER_PAGE)
+  );
+  playlistUrl.searchParams.set("key", youtubeCredential);
+
+  if (pageToken) {
+    playlistUrl.searchParams.set("pageToken", pageToken);
+  }
+
+  const playlistRes = await fetch(playlistUrl);
+
+  if (!playlistRes.ok) {
+    throw new Error(
+      `playlistItems.list HTTP ${playlistRes.status} on page ${pagesFetched + 1}`
+    );
+  }
+
+  const playlistData =
+    (await playlistRes.json()) as YouTubePlaylistResponse;
+
+  items.push(...(playlistData.items ?? []));
+
+  pageToken = playlistData.nextPageToken;
+  pagesFetched += 1;
+
+  console.info(
+    `[sync-youtube] Page ${pagesFetched} : ` +
+    `${playlistData.items?.length ?? 0} vidéo(s) récupérée(s).`
+  );
+} while (pageToken && pagesFetched < MAX_PAGES_PER_RUN);
+
+console.info(
+  `[sync-youtube] Playlist analysée : ${items.length} vidéo(s), ` +
+  `${pagesFetched} page(s).`
+);
+
+if (pageToken) {
+  console.warn(
+    `[sync-youtube] Limite de sécurité atteinte : ${MAX_PAGES_PER_RUN} pages.`
+  );
+}
     console.info(`[sync-youtube] ${items.length} vidéo(s) récupérée(s).`);
 
     // ── ÉTAPE 3 : détecter les YouTube Shorts via videos.list ─────────────────
@@ -229,6 +277,7 @@ interface YouTubeChannelResponse {
 }
 
 interface YouTubePlaylistResponse {
+nextPageToken?: string;
   items?: Array<{
     snippet?: {
       title?: string;
