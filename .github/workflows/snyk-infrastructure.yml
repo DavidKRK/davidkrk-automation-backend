@@ -48,7 +48,8 @@ jobs:
           sarif: true
       - name: Skip Snyk scan when token is missing
         if: env.SNYK_TOKEN == ''
-        run: echo "SNYK_TOKEN non configuré: scan Snyk IaC ignoré."
+        run: |
+          echo "SNYK_TOKEN non configuré: scan Snyk IaC ignoré."
       - name: Upload result to GitHub Code Scanning
         if: env.SNYK_TOKEN != '' && hashFiles('snyk.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
