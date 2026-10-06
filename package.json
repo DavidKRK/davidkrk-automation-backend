@@ -41,5 +41,9 @@
     "fast-uri": "3.1.8",
     "csv-parse": "^7.0.2",
     "brace-expansion@2": "2.1.7"
+  },
+  "vitest": {
+    "include": "src/**/*.test.ts",
+    "includeSource": "amplify/**/*.test.ts"
   }
 }
