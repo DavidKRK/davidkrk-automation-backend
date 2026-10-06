@@ -4,7 +4,7 @@
   "description": "Backend AWS Amplify Gen 2 pour l'automatisation de la chaîne DavidKRK.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit --project amplify/tsconfig.json",
     "check": "npm run typecheck && npm audit"
   },
