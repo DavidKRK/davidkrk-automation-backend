@@ -1,21 +1,21 @@
 import { expect, test, vi, beforeEach } from 'vitest';
 import { handler } from './handler';
 
-// 1. Simulation globale de DynamoDB Document Client
-const mockSend = vi.fn();
+// 1. Déclaration du mock avec le préfixe requis pour le hoisting de Vitest
+const mockSendFn = vi.fn();
 vi.mock('@aws-sdk/lib-dynamodb', async (importOriginal) => {
   const original = await importOriginal<typeof import('@aws-sdk/lib-dynamodb')>();
   return {
     ...original,
     DynamoDBDocumentClient: {
       from: () => ({
-        send: mockSend,
+        send: mockSendFn,
       }),
     },
   };
 });
 
-// 2. Configuration des variables d'environnement fictives nécessaires au handler
+// 2. Configuration des variables d'environnement fictives
 process.env.CONTENT_POST_TABLE_NAME = 'TestContentPostTable';
 process.env.YOUTUBE_API_KEY = 'AIzaSyFakeKey_123';
 process.env.YOUTUBE_CHANNEL_ID = 'UC_DavidKRK_ChannelID';
@@ -77,23 +77,23 @@ test('handler: devrait exécuter le flux complet, détecter les Shorts et insér
     })
   } as Response);
 
-  // Étape 4 : Fix de la syntaxe de l'objet résolu DynamoDB
-  mockSend.mockResolvedValue({ metadata: {} });
+  // Étape 4 : Mock du retour de DynamoDB
+  mockSendFn.mockResolvedValue({ metadata: {} });
 
   // Exécution du handler
   const result = await handler({}, {} as any);
 
   // ── ASSERTIONS ──────────────────────────────────────
   expect(globalFetchMock).toHaveBeenCalledTimes(3);
-  expect(mockSend).toHaveBeenCalledTimes(2);
+  expect(mockSendFn).toHaveBeenCalledTimes(2);
 
-  // Extraction propre des arguments envoyés à DynamoDB
-  const firstCallInput = mockSend.mock.calls[0][0].input;
-  const secondCallInput = mockSend.mock.calls[1][0].input;
+  // Extraction des payloads envoyés à DynamoDB PutCommand
+  const firstCall = mockSendFn.mock.calls[0][0].input;
+  const secondCall = mockSendFn.mock.calls[1][0].input;
 
-  // Validation des URLs calculées par votre logique interne
-  expect(firstCallInput.Item.url).toBe('https://youtube.com');
-  expect(secondCallInput.Item.url).toBe('https://youtube.com');
+  // Validation de la transformation des URLs (Watch vs Shorts) opérée par votre logique
+  expect(firstCall.Item.url).toBe('https://youtube.com');
+  expect(secondCall.Item.url).toBe('https://youtube.com');
 
   // Vérification de la réponse finale de la Lambda
   expect(result).toEqual({
