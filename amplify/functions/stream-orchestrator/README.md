@@ -16,4 +16,11 @@ Lambda planifiée toutes les 5 minutes pour piloter les sessions de livestream (
 - `YOUTUBE_LIVE_WEBHOOK_URL` (optionnel)
 - `TWITCH_LIVE_WEBHOOK_URL` (optionnel)
 - `FACEBOOK_LIVE_WEBHOOK_URL` (optionnel)
-- `ALLOW_SIMULATED_CONNECTORS` (optionnel, `true` pour simuler sans webhook)
+- `CONNECTOR_WEBHOOK_SECRET` (obligatoire, secret Amplify pour signer les appels sortants)
+- `ALLOW_SIMULATED_CONNECTORS` (optionnel, `true` pour simuler sans webhook uniquement en sandbox/dev quand `AWS_BRANCH` ou `AMPLIFY_ENV` identifie l'environnement)
+
+## Protection anti-rejeu
+
+- `X-Signature` conserve la compatibilité historique (HMAC SHA-256 du corps JSON).
+- `X-Signature-Timestamped` est calculé sur `X-Timestamp + "." + corps JSON` pour empêcher le rejeu avec horodatage modifié.
+- Le récepteur doit rejeter toute requête dont `X-Timestamp` dépasse la fenêtre de fraîcheur prévue, puis vérifier `X-Signature-Timestamped` avec le même secret.

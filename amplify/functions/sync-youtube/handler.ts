@@ -48,7 +48,7 @@ function getRequiredEnv(name: string): string {
  *
  * Note : YouTube a étendu la durée maximale des Shorts à 3 minutes (180 s) en octobre 2024.
  */
-function isoToSeconds(isoDuration: string): number {
+export function isoToSeconds(isoDuration: string): number {
   if (!isoDuration) return Infinity;
   // Accepte uniquement PT[H]M?S? — les durées P1DT... sont exclues (jamais des Shorts)
   const match = isoDuration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
