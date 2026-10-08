@@ -82,7 +82,7 @@ describe("requireConnectorWebhookSecret", () => {
     expect(requireConnectorWebhookSecret("RUNTIME_TEST_WEBHOOK_SECRET")).toBe(secret);
   });
 
-  it.each(["x".repeat(44), `${"A".repeat(43)}=`])(
+  it.each(["x".repeat(44), `${"A".repeat(43)}=`, `${"B".repeat(43)}=`])(
     "rejects weak or non-canonical webhook keys",
     (secret) => {
       vi.stubEnv("RUNTIME_TEST_WEBHOOK_SECRET", secret);

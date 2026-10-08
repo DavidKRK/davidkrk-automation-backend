@@ -70,9 +70,12 @@ export function requireConnectorWebhookSecret(name: string): string {
     value.length !== 44 ||
     decoded.length !== 32 ||
     decoded.toString("base64") !== value ||
+    /^([A-Za-z0-9+/])\1{42}=$/.test(value) ||
     decoded.every((byte) => byte === decoded[0])
   ) {
-    throw new Error(`Secret ${name} must be a canonical Base64 encoding of 32 bytes.`);
+    throw new Error(
+      `Secret ${name} must be a canonical Base64 encoding of 32 bytes, not a repeated-character value.`
+    );
   }
 
   return value;
