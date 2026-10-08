@@ -45,7 +45,7 @@ jobs:
         # Snyk can be used to break the build when it detects security issues.
         # In this case we want to upload the issues to GitHub Code Scanning
         continue-on-error: true
-        uses: snyk/actions/iac@c7971c2fc036368a2c59c8d48a0357dad1780f0d
+        uses: snyk/actions/iac@9adf32b1121593767fc3c057af55b55db032dc04
         with:
           # Scan the whole repository for supported Infrastructure as Code
           # configuration files (e.g. CloudFormation, Terraform, Kubernetes).
