@@ -34,7 +34,7 @@ jobs:
     env:
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d8e2f0b4b2b1be1d
       - name: Run Snyk to check configuration files for security issues
         if: env.SNYK_TOKEN != ''
         # Snyk can be used to break the build when it detects security issues.
@@ -52,6 +52,6 @@ jobs:
           echo "SNYK_TOKEN non configuré: scan Snyk IaC ignoré."
       - name: Upload result to GitHub Code Scanning
         if: env.SNYK_TOKEN != '' && hashFiles('snyk.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@f3c49fd1ef3281abc41069b3dd22807a60c963f6
         with:
           sarif_file: snyk.sarif

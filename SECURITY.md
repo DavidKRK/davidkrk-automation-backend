@@ -23,10 +23,14 @@ This repository enforces CI blocking for **high/critical direct vulnerabilities*
 Temporary exceptions are tracked in:
 - `.github/security/audit-exceptions.json`
 
-There are currently **no temporary accepted risks**.
+Active exceptions are reviewed weekly by the upstream monitor and must have:
+- owner,
+- advisory,
+- linked issue,
+- expiry date,
+- explicit justification.
 
-Exception lifecycle requirements:
-- Owner, advisory, linked issue, and expiration date are mandatory.
-- Weekly monitoring checks the blocked upstream package and reports when a new version should be evaluated.
-- If the targeted vulnerability disappears from audit results, the exception must be removed immediately.
-- On expiry, CI fails until the exception is removed or renewed with explicit justification.
+If the targeted vulnerability disappears from audit results, the exception must be removed immediately.
+On expiry, CI fails until the exception is removed or renewed with explicit justification.
+
+Important: this repository currently contains temporary exception entries for direct Amplify vulnerabilities while upstream fixes are pending. These exceptions are not permanent and should be treated as a temporary risk accepted only under the tracked process above.

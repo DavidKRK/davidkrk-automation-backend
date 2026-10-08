@@ -63,10 +63,13 @@ async function publishArchivePost(
 ): Promise<void> {
   const publishedAt = streamSession.endedAt ?? new Date().toISOString();
 
+  const sourceExternalId = `livestream#${streamSession.id}`;
+
   await dynamo.send(
     new PutCommand({
       TableName: contentPostTableName,
       Item: {
+        sourceExternalId,
         source: "livestream",
         externalId: streamSession.id,
         title: streamSession.title,
@@ -79,7 +82,7 @@ async function publishArchivePost(
         updatedAt: new Date().toISOString(),
         __typename: "ContentPost",
       },
-      ConditionExpression: "attribute_not_exists(source)",
+      ConditionExpression: "attribute_not_exists(sourceExternalId)",
     })
   );
 }
