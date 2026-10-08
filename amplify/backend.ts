@@ -5,6 +5,7 @@ import { storage } from './storage/resource';
 import { syncYoutube } from './functions/sync-youtube/resource';
 import { streamOrchestrator } from './functions/stream-orchestrator/resource';
 import { postLiveMaintenance } from './functions/post-live-maintenance/resource';
+import { assertSimulatedConnectorsAllowed } from './functions/stream-orchestrator/connectors/http';
 
 /**
  * Backend V1.1 — DavidKRK Automation
@@ -17,6 +18,8 @@ import { postLiveMaintenance } from './functions/post-live-maintenance/resource'
  *  - streamOrchestrator : Lambda planifiée toutes les 5 min (pré-live/live/post-live)
  *  - postLiveMaintenance: Lambda planifiée toutes les 1h (archivage post-live)
  */
+assertSimulatedConnectorsAllowed(process.env);
+
 const backend = defineBackend({
   auth,
   data,

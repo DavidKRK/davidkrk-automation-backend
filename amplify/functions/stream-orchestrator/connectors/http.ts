@@ -71,7 +71,11 @@ export function isWebhookTimestampFresh(
   return nowMs - timestampMs <= maxAgeMs && timestampMs - nowMs <= maxAgeMs;
 }
 
-function signWebhookBody(body: string, timestamp: string, secret: string): string {
+function signWebhookBody(body: string, secret: string): string {
+  return `sha256=${createHmac("sha256", secret).update(body).digest("hex")}`;
+}
+
+function signWebhookBodyWithTimestamp(body: string, timestamp: string, secret: string): string {
   return `sha256=${createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex")}`;
 }
 
@@ -86,7 +90,7 @@ export function verifyWebhookSignature(
     return false;
   }
 
-  const expectedSignature = signWebhookBody(body, timestamp, secret);
+  const expectedSignature = signWebhookBodyWithTimestamp(body, timestamp, secret);
   const expectedBuffer = Buffer.from(expectedSignature);
   const signatureBuffer = Buffer.from(signature);
 
@@ -107,7 +111,7 @@ function isAbortError(error: unknown): boolean {
 }
 
 function isRetryableNetworkError(error: unknown): boolean {
-  return error instanceof TypeError || isAbortError(error);
+  return error instanceof TypeError;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -150,12 +154,14 @@ export async function callConnectorWebhook(
     const timestamp = new Date().toISOString();
 
     try {
-      const signature = signWebhookBody(body, timestamp, secret);
+      const signature = signWebhookBody(body, secret);
+      const timestampedSignature = signWebhookBodyWithTimestamp(body, timestamp, secret);
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "content-type": "application/json",
           "X-Signature": signature,
+          "X-Signature-Timestamped": timestampedSignature,
           "X-Timestamp": timestamp,
         },
         body,
@@ -189,6 +195,13 @@ export async function callConnectorWebhook(
         liveUrl: parsed?.liveUrl,
       };
     } catch (error) {
+      if (isAbortError(error)) {
+        return {
+          success: false,
+          message: "Webhook call failed: WEBHOOK_TIMEOUT",
+        };
+      }
+
       const retryable = isRetryableNetworkError(error);
       if (retryable && attempt < RETRY_BACKOFF_MS.length) {
         await sleep(RETRY_BACKOFF_MS[attempt]);
@@ -197,7 +210,7 @@ export async function callConnectorWebhook(
 
       return {
         success: false,
-        message: `Webhook call failed: ${isAbortError(error) ? "WEBHOOK_TIMEOUT" : getErrorMessage(error)}`,
+        message: `Webhook call failed: ${getErrorMessage(error)}`,
       };
     } finally {
       clearTimeout(timeoutId);

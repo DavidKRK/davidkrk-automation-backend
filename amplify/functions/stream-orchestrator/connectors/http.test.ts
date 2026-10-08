@@ -92,12 +92,20 @@ test("callConnectorWebhook signs payloads and adds an idempotency key", async ()
   expect(headers["content-type"]).toBe("application/json");
   expect(headers["X-Timestamp"]).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   expect(headers["X-Signature"]).toBe(
+    `sha256=${createHmac("sha256", "super-secret").update(body).digest("hex")}`
+  );
+  expect(headers["X-Signature-Timestamped"]).toBe(
     `sha256=${createHmac("sha256", "super-secret")
       .update(`${headers["X-Timestamp"]}.${body}`)
       .digest("hex")}`
   );
   expect(
-    verifyWebhookSignature(body, headers["X-Timestamp"], "super-secret", headers["X-Signature"])
+    verifyWebhookSignature(
+      body,
+      headers["X-Timestamp"],
+      "super-secret",
+      headers["X-Signature-Timestamped"]
+    )
   ).toBe(true);
 });
 
@@ -156,7 +164,7 @@ test("callConnectorWebhook retries on 5xx responses", async () => {
   expect(fetchMock).toHaveBeenCalledTimes(2);
 });
 
-test("callConnectorWebhook returns WEBHOOK_TIMEOUT after repeated timeouts", async () => {
+test("callConnectorWebhook returns WEBHOOK_TIMEOUT without retrying on timeout", async () => {
   vi.useFakeTimers();
   const fetchMock = vi.mocked(global.fetch);
   fetchMock.mockImplementation((_, init) =>
@@ -186,10 +194,10 @@ test("callConnectorWebhook returns WEBHOOK_TIMEOUT after repeated timeouts", asy
     }
   );
 
-  await vi.advanceTimersByTimeAsync(35_000);
+  await vi.advanceTimersByTimeAsync(10_000);
   await expect(promise).resolves.toEqual({
     success: false,
     message: "Webhook call failed: WEBHOOK_TIMEOUT",
   });
-  expect(fetchMock).toHaveBeenCalledTimes(3);
+  expect(fetchMock).toHaveBeenCalledTimes(1);
 });

@@ -21,5 +21,6 @@ Lambda planifiée toutes les 5 minutes pour piloter les sessions de livestream (
 
 ## Protection anti-rejeu
 
-- `X-Signature` est calculé sur `X-Timestamp` et le corps JSON.
-- Le récepteur doit rejeter toute requête dont `X-Timestamp` dépasse la fenêtre de fraîcheur prévue avant de vérifier la signature.
+- `X-Signature` conserve la compatibilité historique (HMAC SHA-256 du corps JSON).
+- `X-Signature-Timestamped` est calculé sur `X-Timestamp + "." + corps JSON` pour empêcher le rejeu avec horodatage modifié.
+- Le récepteur doit rejeter toute requête dont `X-Timestamp` dépasse la fenêtre de fraîcheur prévue, puis vérifier `X-Signature-Timestamped` avec le même secret.
