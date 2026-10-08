@@ -17,7 +17,9 @@ Lambda planifiée toutes les 5 minutes pour piloter les sessions de livestream (
 - `TWITCH_LIVE_WEBHOOK_URL` (optionnel)
 - `FACEBOOK_LIVE_WEBHOOK_URL` (optionnel)
 - `CONNECTOR_WEBHOOK_SECRET` (obligatoire, secret Amplify pour signer les appels sortants)
-- `ALLOW_SIMULATED_CONNECTORS` (optionnel, `true` pour simuler sans webhook uniquement en sandbox/dev quand `AWS_BRANCH` ou `AMPLIFY_ENV` identifie l'environnement)
+- `ALLOW_SIMULATED_CONNECTORS` (optionnel, `true` pour simuler sans webhook uniquement en sandbox/dev ; la branche et l'environnement Amplify sont transmis par le backend)
+
+Le secret webhook doit être généré avec au moins 32 octets aléatoires, encodés en Base64 (par exemple `openssl rand -base64 32`), et configuré comme secret Amplify dans chaque environnement. Les URLs webhook et les paramètres de simulation sont définis dans les variables de l'application Amplify, puis transmis à la Lambda lors de la synthèse du backend.
 
 ## Protection anti-rejeu
 

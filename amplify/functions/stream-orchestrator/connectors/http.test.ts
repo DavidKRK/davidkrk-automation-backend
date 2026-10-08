@@ -15,7 +15,9 @@ const defaultContext = {
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn());
-  process.env.CONNECTOR_WEBHOOK_SECRET = "super-secret";
+  process.env.CONNECTOR_WEBHOOK_SECRET = Buffer.from(
+    "0123456789abcdef0123456789abcdef"
+  ).toString("base64");
 });
 
 afterEach(() => {
@@ -47,6 +49,21 @@ test("assertSimulatedConnectorsAllowed allows simulation in sandbox", () => {
     assertSimulatedConnectorsAllowed({
       ALLOW_SIMULATED_CONNECTORS: "true",
       AWS_BRANCH: "sandbox",
+    } as NodeJS.ProcessEnv)
+  ).not.toThrow();
+});
+
+test("assertSimulatedConnectorsAllowed uses synthesized deployment metadata", () => {
+  expect(() =>
+    assertSimulatedConnectorsAllowed({
+      ALLOW_SIMULATED_CONNECTORS: "true",
+      CONNECTOR_DEPLOYMENT_BRANCH: "main",
+    } as NodeJS.ProcessEnv)
+  ).toThrow(/sandbox or dev deployments/);
+  expect(() =>
+    assertSimulatedConnectorsAllowed({
+      ALLOW_SIMULATED_CONNECTORS: "true",
+      CONNECTOR_DEPLOYMENT_BRANCH: "sandbox",
     } as NodeJS.ProcessEnv)
   ).not.toThrow();
 });
@@ -94,10 +111,10 @@ test("callConnectorWebhook signs payloads and adds an idempotency key", async ()
   expect(headers["content-type"]).toBe("application/json");
   expect(headers["X-Timestamp"]).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   expect(headers["X-Signature"]).toBe(
-    `sha256=${createHmac("sha256", "super-secret").update(body).digest("hex")}`
+    `sha256=${createHmac("sha256", process.env.CONNECTOR_WEBHOOK_SECRET!).update(body).digest("hex")}`
   );
   expect(headers["X-Signature-Timestamped"]).toBe(
-    `sha256=${createHmac("sha256", "super-secret")
+    `sha256=${createHmac("sha256", process.env.CONNECTOR_WEBHOOK_SECRET!)
       .update(`${headers["X-Timestamp"]}.${body}`)
       .digest("hex")}`
   );
@@ -105,7 +122,7 @@ test("callConnectorWebhook signs payloads and adds an idempotency key", async ()
     verifyWebhookSignature(
       body,
       headers["X-Timestamp"],
-      "super-secret",
+      process.env.CONNECTOR_WEBHOOK_SECRET!,
       headers["X-Signature-Timestamped"]
     )
   ).toBe(true);
@@ -123,7 +140,7 @@ test("callConnectorWebhook refuses non-HTTPS endpoints in production", async () 
 test("verifyWebhookSignature rejects stale timestamps", () => {
   const timestamp = "2026-01-01T00:00:00.000Z";
   const body = JSON.stringify({ hello: "world" });
-  const signature = `sha256=${createHmac("sha256", "super-secret")
+  const signature = `sha256=${createHmac("sha256", process.env.CONNECTOR_WEBHOOK_SECRET!)
     .update(`${timestamp}.${body}`)
     .digest("hex")}`;
 
@@ -132,7 +149,7 @@ test("verifyWebhookSignature rejects stale timestamps", () => {
     verifyWebhookSignature(
       body,
       timestamp,
-      "super-secret",
+      process.env.CONNECTOR_WEBHOOK_SECRET!,
       signature,
       Date.parse("2026-01-01T00:06:00.000Z")
     )

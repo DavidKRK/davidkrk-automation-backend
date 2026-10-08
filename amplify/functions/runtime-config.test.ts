@@ -3,6 +3,7 @@ import {
   getOptionalWebhookUrl,
   getRequiredEnv,
   isLikelyPlaceholder,
+  requireConnectorWebhookSecret,
   requireSecret,
   validateHttpUrl,
 } from "./runtime-config";
@@ -31,6 +32,15 @@ describe("getRequiredEnv", () => {
     }
   );
 
+  it.each(["company-sample-table", "api.examplecorp.com"])(
+    "accepts legitimate values containing placeholder-like words (%s)",
+    (value) => {
+      vi.stubEnv("RUNTIME_TEST_VALUE", value);
+      expect(getRequiredEnv("RUNTIME_TEST_VALUE")).toBe(value);
+      expect(isLikelyPlaceholder(value)).toBe(false);
+    }
+  );
+
   it("trims and returns a configured value", () => {
     vi.stubEnv("RUNTIME_TEST_VALUE", "  a-real-config-value  ");
     expect(getRequiredEnv("RUNTIME_TEST_VALUE")).toBe("a-real-config-value");
@@ -55,6 +65,30 @@ describe("requireSecret", () => {
     vi.stubEnv("RUNTIME_TEST_SECRET", "x".repeat(11));
     expect(() => requireSecret("RUNTIME_TEST_SECRET")).toThrow(/too short/);
   });
+
+  it("applies the same minimum-length policy in test and production", () => {
+    for (const nodeEnv of ["test", "production"]) {
+      vi.stubEnv("NODE_ENV", nodeEnv);
+      vi.stubEnv("RUNTIME_TEST_SECRET", "x".repeat(11));
+      expect(() => requireSecret("RUNTIME_TEST_SECRET")).toThrow(/too short/);
+    }
+  });
+});
+
+describe("requireConnectorWebhookSecret", () => {
+  it("accepts a canonical base64 secret representing 32 bytes", () => {
+    const secret = Buffer.from("0123456789abcdef0123456789abcdef").toString("base64");
+    vi.stubEnv("RUNTIME_TEST_WEBHOOK_SECRET", secret);
+    expect(requireConnectorWebhookSecret("RUNTIME_TEST_WEBHOOK_SECRET")).toBe(secret);
+  });
+
+  it.each(["x".repeat(44), `${"A".repeat(43)}=`])(
+    "rejects weak or non-canonical webhook keys",
+    (secret) => {
+      vi.stubEnv("RUNTIME_TEST_WEBHOOK_SECRET", secret);
+      expect(() => requireConnectorWebhookSecret("RUNTIME_TEST_WEBHOOK_SECRET")).toThrow(/32 bytes/);
+    }
+  );
 });
 
 describe("webhook URL validation", () => {
@@ -73,6 +107,21 @@ describe("webhook URL validation", () => {
         RUNTIME_TEST_WEBHOOK: "https://example.com/hook",
       } as NodeJS.ProcessEnv)
     ).toThrow(/placeholder/);
+    expect(() =>
+      getOptionalWebhookUrl("RUNTIME_TEST_WEBHOOK", {
+        RUNTIME_TEST_WEBHOOK: "https://api.example.com/hook",
+        AMPLIFY_ENV: "sandbox",
+      } as NodeJS.ProcessEnv)
+    ).toThrow(/placeholder/);
+  });
+
+  it("accepts real hosts containing the word example", () => {
+    expect(
+      getOptionalWebhookUrl("RUNTIME_TEST_WEBHOOK", {
+        RUNTIME_TEST_WEBHOOK: "https://api.examplecorp.com/hook",
+        AMPLIFY_ENV: "sandbox",
+      } as NodeJS.ProcessEnv)
+    ).toBe("https://api.examplecorp.com/hook");
   });
 
   it("allows HTTP in development and requires HTTPS in production", () => {
@@ -88,11 +137,24 @@ describe("webhook URL validation", () => {
         AWS_BRANCH: "main",
       } as NodeJS.ProcessEnv)
     ).toThrow(/HTTPS/);
-    expect(
+    expect(() =>
       validateHttpUrl("https://webhook.example.org/hook", {
         NODE_ENV: "production",
       } as NodeJS.ProcessEnv)
-    ).toBe("https://webhook.example.org/hook");
+    ).toThrow(/HTTPS/);
+    expect(
+      validateHttpUrl("https://webhook.examplecorp.com/hook", {
+        NODE_ENV: "production",
+      } as NodeJS.ProcessEnv)
+    ).toBe("https://webhook.examplecorp.com/hook");
+  });
+
+  it("requires HTTPS in production identified by the synthesized connector branch", () => {
+    expect(() =>
+      validateHttpUrl("http://webhook.internal/hook", {
+        CONNECTOR_DEPLOYMENT_BRANCH: "main",
+      } as NodeJS.ProcessEnv)
+    ).toThrow(/HTTPS/);
   });
 
   it("requires HTTPS when deployment environment metadata is missing", () => {

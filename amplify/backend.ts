@@ -95,6 +95,21 @@ backend.streamOrchestrator.addEnvironment(
   streamSessionTable.tableName
 );
 
+const connectorRuntimeEnvironment = [
+  ["YOUTUBE_LIVE_WEBHOOK_URL", process.env.YOUTUBE_LIVE_WEBHOOK_URL],
+  ["TWITCH_LIVE_WEBHOOK_URL", process.env.TWITCH_LIVE_WEBHOOK_URL],
+  ["FACEBOOK_LIVE_WEBHOOK_URL", process.env.FACEBOOK_LIVE_WEBHOOK_URL],
+  ["ALLOW_SIMULATED_CONNECTORS", process.env.ALLOW_SIMULATED_CONNECTORS ?? "false"],
+  ["CONNECTOR_DEPLOYMENT_BRANCH", process.env.AWS_BRANCH],
+  ["CONNECTOR_AMPLIFY_ENV", process.env.AMPLIFY_ENV],
+] as const;
+
+for (const [name, value] of connectorRuntimeEnvironment) {
+  if (value !== undefined) {
+    backend.streamOrchestrator.addEnvironment(name, value);
+  }
+}
+
 backend.postLiveMaintenance.addEnvironment(
   "STREAM_SESSION_TABLE_NAME",
   streamSessionTable.tableName

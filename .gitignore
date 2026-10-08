@@ -3,6 +3,11 @@
 amplify_outputs*
 amplifyconfiguration*
 
+# local environment files
+.env
+.env.*
+!.env.example
+
 # node modules
 node_modules
 

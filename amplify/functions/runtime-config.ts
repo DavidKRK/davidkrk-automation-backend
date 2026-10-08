@@ -30,11 +30,12 @@ export function isLikelyPlaceholder(value: string | undefined): boolean {
   if (!value) return true;
   const normalized = normalize(value);
   if (normalized.length === 0) return true;
-  if (PLACEHOLDER_VALUES.has(normalized)) return true;
-  if (normalized.includes("replace") && normalized.includes("me")) return true;
-  if (normalized.includes("example") || normalized.includes("sample")) return true;
-  if (normalized.includes("changeme") || normalized.includes("your_")) return true;
-  return false;
+  return (
+    PLACEHOLDER_VALUES.has(normalized) ||
+    /^<[^<>]+>$/.test(normalized) ||
+    /^\$\{[^{}]+\}$/.test(normalized) ||
+    /^\{\{[^{}]+\}\}$/.test(normalized)
+  );
 }
 
 export function getRequiredEnv(name: string): string {
@@ -61,8 +62,27 @@ export function requireSecret(name: string): string {
   return value;
 }
 
+export function requireConnectorWebhookSecret(name: string): string {
+  const value = requireSecret(name);
+  const decoded = Buffer.from(value, "base64");
+
+  if (
+    value.length !== 44 ||
+    decoded.length !== 32 ||
+    decoded.toString("base64") !== value ||
+    decoded.every((byte) => byte === decoded[0])
+  ) {
+    throw new Error(`Secret ${name} must be a canonical Base64 encoding of 32 bytes.`);
+  }
+
+  return value;
+}
+
 function isProduction(env: NodeJS.ProcessEnv): boolean {
-  const deploymentNames = [env.AWS_BRANCH, env.AMPLIFY_ENV]
+  const deploymentNames = [
+    env.CONNECTOR_DEPLOYMENT_BRANCH ?? env.AWS_BRANCH,
+    env.CONNECTOR_AMPLIFY_ENV ?? env.AMPLIFY_ENV,
+  ]
     .filter((value): value is string => Boolean(value))
     .map((value) => value.trim().toLowerCase());
 
@@ -76,6 +96,20 @@ function isProduction(env: NodeJS.ProcessEnv): boolean {
   return !deploymentNames.some((name) => ["sandbox", "dev", "development"].includes(name));
 }
 
+function isPlaceholderWebhookHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase().replace(/\.$/, "");
+  return (
+    normalized === "example.com" ||
+    normalized === "example.net" ||
+    normalized === "example.org" ||
+    normalized.endsWith(".example.com") ||
+    normalized.endsWith(".example.net") ||
+    normalized.endsWith(".example.org") ||
+    normalized === "example" ||
+    normalized.endsWith(".example")
+  );
+}
+
 export function validateHttpUrl(
   value: string,
   env: NodeJS.ProcessEnv = process.env
@@ -85,6 +119,7 @@ export function validateHttpUrl(
     if (
       (url.protocol !== "https:" && url.protocol !== "http:") ||
       !url.hostname ||
+      isPlaceholderWebhookHostname(url.hostname) ||
       url.username ||
       url.password ||
       (isProduction(env) && url.protocol !== "https:")
@@ -107,13 +142,9 @@ export function getOptionalWebhookUrl(
   const value = env[name]?.trim();
   if (!value) return undefined;
 
-  if (isLikelyPlaceholder(value)) {
-    throw new Error(`Environment variable ${name} contains a placeholder or invalid value.`);
-  }
-
   try {
     return validateHttpUrl(value, env);
   } catch {
-    throw new Error(`Environment variable ${name} contains an invalid webhook URL.`);
+    throw new Error(`Environment variable ${name} contains an invalid webhook URL or placeholder.`);
   }
 }

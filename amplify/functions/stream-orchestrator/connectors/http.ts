@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { requireSecret, validateHttpUrl } from "../../runtime-config";
+import { requireConnectorWebhookSecret, validateHttpUrl } from "../../runtime-config";
 import type { ConnectorResult, StreamDestinationRecord, StreamSessionRecord } from "./types";
 
 export function assertSimulatedConnectorsAllowed(env: NodeJS.ProcessEnv = process.env): void {
@@ -7,14 +7,19 @@ export function assertSimulatedConnectorsAllowed(env: NodeJS.ProcessEnv = proces
     return;
   }
 
-  const deploymentEnv = env.AWS_BRANCH ?? env.AMPLIFY_ENV;
-  if (!deploymentEnv) {
+  const deploymentNames = [
+    env.CONNECTOR_DEPLOYMENT_BRANCH ?? env.AWS_BRANCH,
+    env.CONNECTOR_AMPLIFY_ENV ?? env.AMPLIFY_ENV,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.trim().toLowerCase());
+  if (deploymentNames.length === 0) {
     throw new Error(
-      "ALLOW_SIMULATED_CONNECTORS=true requires AWS_BRANCH or AMPLIFY_ENV to identify a sandbox or dev deployment."
+      "ALLOW_SIMULATED_CONNECTORS=true requires deployment metadata identifying a sandbox or dev deployment."
     );
   }
 
-  if (deploymentEnv !== "sandbox" && deploymentEnv !== "dev") {
+  if (deploymentNames.some((name) => !["sandbox", "dev", "development"].includes(name))) {
     throw new Error(
       "ALLOW_SIMULATED_CONNECTORS=true is only allowed for sandbox or dev deployments."
     );
@@ -137,7 +142,7 @@ export async function callConnectorWebhook(
   }
 
   const validatedEndpoint = validateHttpUrl(endpoint);
-  const secret = requireSecret("CONNECTOR_WEBHOOK_SECRET");
+  const secret = requireConnectorWebhookSecret("CONNECTOR_WEBHOOK_SECRET");
   const { body } = buildWebhookBody(payload as Record<string, unknown>, context);
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
