@@ -15,30 +15,17 @@
       "removalPlan": "Review the upstream package weekly. When a compatible release removes the vulnerable dependency path, upgrade the Amplify toolchain, verify the audit no longer reports this advisory, then remove this exception and its Dependabot ignore."
     },
     {
-      "id": "amplify-backend-direct-high-temporary",
-      "package": "@aws-amplify/backend",
-      "nodePathContains": "node_modules/@aws-amplify/backend",
-      "advisory": "npm-audit-amplify-2026-10-04",
-      "severity": "high",
-      "owner": "@DavidKRK",
-      "issue": "#153",
-      "upstreamPackage": "@aws-amplify/backend",
-      "expiresOn": "2026-11-15",
-      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/backend; le suivi de correction est centralisé dans l’issue #153. L’exception reste limitée par l’expiration et le gate CI bloque les findings non couverts.",
-      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
-    },
-    {
       "id": "amplify-backend-auth-direct-high-temporary",
       "package": "@aws-amplify/backend-auth",
       "nodePathContains": "node_modules/@aws-amplify/backend-auth",
       "advisory": "npm-audit-amplify-2026-10-04",
       "severity": "high",
       "owner": "@DavidKRK",
-      "issue": "#153",
+      "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-auth",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/backend-auth; l’évaluation d’une version amont corrigée est suivie dans l’issue #153. L’exception expire le 2026-11-15.",
-      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-auth; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend-auth dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
       "id": "amplify-backend-cli-direct-high-temporary",
@@ -47,11 +34,11 @@
       "advisory": "npm-audit-amplify-2026-10-04",
       "severity": "high",
       "owner": "@DavidKRK",
-      "issue": "#153",
+      "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-cli",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/backend-cli; l’upgrade correctif est suivi dans l’issue #153. L’exception expire le 2026-11-15.",
-      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-cli; l’issue #171 suit l’option amont corrigée, qui doit être confirmée car aucun correctif compatible n’est actuellement identifié par npm. Cette exception expire le 2026-11-15.",
+      "removalPlan": "Suivre l’avis et les releases de @aws-amplify/backend-cli dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
       "id": "amplify-backend-data-direct-high-temporary",
@@ -60,11 +47,11 @@
       "advisory": "npm-audit-amplify-2026-10-04",
       "severity": "high",
       "owner": "@DavidKRK",
-      "issue": "#153",
+      "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-data",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/backend-data; la validation d’un upgrade correctif est suivie dans l’issue #153. L’exception expire le 2026-11-15.",
-      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-data; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend-data dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
       "id": "amplify-backend-function-direct-high-temporary",
@@ -73,11 +60,11 @@
       "advisory": "npm-audit-amplify-2026-10-04",
       "severity": "high",
       "owner": "@DavidKRK",
-      "issue": "#153",
+      "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-function",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/backend-function; la validation d’un upgrade correctif est suivie dans l’issue #153. L’exception expire le 2026-11-15.",
-      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-function; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend-function dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
       "id": "amplify-backend-storage-direct-high-temporary",
@@ -86,11 +73,11 @@
       "advisory": "npm-audit-amplify-2026-10-04",
       "severity": "high",
       "owner": "@DavidKRK",
-      "issue": "#153",
+      "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-storage",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/backend-storage; la validation d’un upgrade correctif est suivie dans l’issue #153. L’exception expire le 2026-11-15.",
-      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-storage; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend-storage dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
       "id": "amplify-data-construct-direct-high-temporary",
@@ -99,11 +86,11 @@
       "advisory": "npm-audit-amplify-2026-10-04",
       "severity": "high",
       "owner": "@DavidKRK",
-      "issue": "#153",
+      "issue": "#171",
       "upstreamPackage": "@aws-amplify/data-construct",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/data-construct; la validation d’un upgrade correctif est suivie dans l’issue #153. L’exception expire le 2026-11-15.",
-      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/data-construct; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/data-construct dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
       "id": "amplify-graphql-api-construct-direct-high-temporary",
@@ -112,11 +99,11 @@
       "advisory": "npm-audit-amplify-2026-10-04",
       "severity": "high",
       "owner": "@DavidKRK",
-      "issue": "#153",
+      "issue": "#171",
       "upstreamPackage": "@aws-amplify/graphql-api-construct",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/graphql-api-construct; la validation d’un upgrade correctif est suivie dans l’issue #153. L’exception expire le 2026-11-15.",
-      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/graphql-api-construct; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/graphql-api-construct dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     }
   ]
 }
