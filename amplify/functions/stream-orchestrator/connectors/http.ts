@@ -183,7 +183,11 @@ export async function callConnectorWebhook(
       let responseBody: unknown;
       try {
         responseBody = await response.json();
-      } catch {
+      } catch (error) {
+        if (isAbortError(error)) {
+          throw error;
+        }
+
         responseBody = undefined;
       }
 

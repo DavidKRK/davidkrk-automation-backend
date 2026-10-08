@@ -201,3 +201,44 @@ test("callConnectorWebhook returns WEBHOOK_TIMEOUT without retrying on timeout",
   });
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
+
+test("callConnectorWebhook returns WEBHOOK_TIMEOUT when response body read is aborted", async () => {
+  vi.useFakeTimers();
+  const fetchMock = vi.mocked(global.fetch);
+  fetchMock.mockImplementation((_, init) => {
+    const signal = init?.signal;
+
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () =>
+        new Promise((_resolve, reject) => {
+          signal?.addEventListener(
+            "abort",
+            () => {
+              reject(Object.assign(new Error("Body read aborted"), { name: "AbortError" }));
+            },
+            { once: true }
+          );
+        }),
+    } as Response);
+  });
+
+  const promise = callConnectorWebhook(
+    "https://example.test/webhook",
+    {
+      action: "prepare",
+      session: defaultContext.session,
+      destination: defaultContext.destination,
+    },
+    "fallback",
+    defaultContext
+  );
+
+  await vi.advanceTimersByTimeAsync(10_000);
+  await expect(promise).resolves.toEqual({
+    success: false,
+    message: "Webhook call failed: WEBHOOK_TIMEOUT",
+  });
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
