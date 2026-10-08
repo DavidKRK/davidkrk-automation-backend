@@ -39,7 +39,7 @@ jobs:
     env:
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d8e2f0b4b2b1be1d
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Run Snyk to check configuration files for security issues
         if: env.SNYK_TOKEN != ''
         # Snyk can be used to break the build when it detects security issues.
