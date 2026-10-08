@@ -13,7 +13,12 @@ export const facebookConnector: PlatformConnector = {
         session,
         destination,
       },
-      "Facebook prepare simulated (no webhook configured)"
+      "Facebook prepare simulated (no webhook configured)",
+      {
+        phase: "prepareLive",
+        session,
+        destination,
+      }
     ),
   startLive: async (session, destination) =>
     callConnectorWebhook(
@@ -23,7 +28,12 @@ export const facebookConnector: PlatformConnector = {
         session,
         destination,
       },
-      "Facebook start simulated (no webhook configured)"
+      "Facebook start simulated (no webhook configured)",
+      {
+        phase: "startLive",
+        session,
+        destination,
+      }
     ),
   stopLive: async (session, destination) =>
     callConnectorWebhook(
@@ -33,6 +43,11 @@ export const facebookConnector: PlatformConnector = {
         session,
         destination,
       },
-      "Facebook stop simulated (no webhook configured)"
+      "Facebook stop simulated (no webhook configured)",
+      {
+        phase: "stopLive",
+        session,
+        destination,
+      }
     ),
 };

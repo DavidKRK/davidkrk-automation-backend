@@ -16,4 +16,5 @@ Lambda planifiée toutes les 5 minutes pour piloter les sessions de livestream (
 - `YOUTUBE_LIVE_WEBHOOK_URL` (optionnel)
 - `TWITCH_LIVE_WEBHOOK_URL` (optionnel)
 - `FACEBOOK_LIVE_WEBHOOK_URL` (optionnel)
+- `CONNECTOR_WEBHOOK_SECRET` (obligatoire, secret Amplify pour signer les appels sortants)
 - `ALLOW_SIMULATED_CONNECTORS` (optionnel, `true` pour simuler sans webhook uniquement en sandbox/dev)

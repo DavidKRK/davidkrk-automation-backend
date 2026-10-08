@@ -13,7 +13,12 @@ export const twitchConnector: PlatformConnector = {
         session,
         destination,
       },
-      "Twitch prepare simulated (no webhook configured)"
+      "Twitch prepare simulated (no webhook configured)",
+      {
+        phase: "prepareLive",
+        session,
+        destination,
+      }
     ),
   startLive: async (session, destination) =>
     callConnectorWebhook(
@@ -23,7 +28,12 @@ export const twitchConnector: PlatformConnector = {
         session,
         destination,
       },
-      "Twitch start simulated (no webhook configured)"
+      "Twitch start simulated (no webhook configured)",
+      {
+        phase: "startLive",
+        session,
+        destination,
+      }
     ),
   stopLive: async (session, destination) =>
     callConnectorWebhook(
@@ -33,6 +43,11 @@ export const twitchConnector: PlatformConnector = {
         session,
         destination,
       },
-      "Twitch stop simulated (no webhook configured)"
+      "Twitch stop simulated (no webhook configured)",
+      {
+        phase: "stopLive",
+        session,
+        destination,
+      }
     ),
 };

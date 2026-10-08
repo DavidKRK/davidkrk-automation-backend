@@ -72,6 +72,7 @@ npx ampx pipeline-deploy --branch <branche> --app-id <app-id>
 | `YOUTUBE_LIVE_WEBHOOK_URL` | Endpoint d'intégration live YouTube (optionnel) |
 | `TWITCH_LIVE_WEBHOOK_URL` | Endpoint d'intégration live Twitch (optionnel) |
 | `FACEBOOK_LIVE_WEBHOOK_URL` | Endpoint d'intégration live Facebook Page (optionnel) |
+| `CONNECTOR_WEBHOOK_SECRET` | Secret Amplify utilisé pour signer les appels webhook sortants |
 | `ALLOW_SIMULATED_CONNECTORS` | `true` pour autoriser un mode simulation sans webhook en sandbox/dev (sinon échec explicite) |
 
 ## Lancement d'un livestream (V1)

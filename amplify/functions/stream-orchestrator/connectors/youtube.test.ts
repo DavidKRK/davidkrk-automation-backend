@@ -34,6 +34,11 @@ test("youtube connector builds the prepare payload with session and destination"
       session,
       destination,
     },
-    "YouTube prepare simulated (no webhook configured)"
+    "YouTube prepare simulated (no webhook configured)",
+    {
+      phase: "prepareLive",
+      session,
+      destination,
+    }
   );
 });

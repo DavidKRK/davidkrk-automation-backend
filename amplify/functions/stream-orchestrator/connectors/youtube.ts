@@ -13,7 +13,12 @@ export const youtubeConnector: PlatformConnector = {
         session,
         destination,
       },
-      "YouTube prepare simulated (no webhook configured)"
+      "YouTube prepare simulated (no webhook configured)",
+      {
+        phase: "prepareLive",
+        session,
+        destination,
+      }
     ),
   startLive: async (session, destination) =>
     callConnectorWebhook(
@@ -23,7 +28,12 @@ export const youtubeConnector: PlatformConnector = {
         session,
         destination,
       },
-      "YouTube start simulated (no webhook configured)"
+      "YouTube start simulated (no webhook configured)",
+      {
+        phase: "startLive",
+        session,
+        destination,
+      }
     ),
   stopLive: async (session, destination) =>
     callConnectorWebhook(
@@ -33,6 +43,11 @@ export const youtubeConnector: PlatformConnector = {
         session,
         destination,
       },
-      "YouTube stop simulated (no webhook configured)"
+      "YouTube stop simulated (no webhook configured)",
+      {
+        phase: "stopLive",
+        session,
+        destination,
+      }
     ),
 };
