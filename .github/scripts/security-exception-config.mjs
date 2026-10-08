@@ -2,7 +2,7 @@ const REQUIRED_EXCEPTION_FIELDS = [
   "id",
   "package",
   "nodePathContains",
-  "advisory",
+  "advisories",
   "severity",
   "owner",
   "issue",
@@ -47,6 +47,17 @@ export function validateExceptionConfig(exceptionConfig, { requireUpstreamPackag
     }
 
     for (const field of REQUIRED_EXCEPTION_FIELDS) {
+      if (field === "advisories") {
+        if (
+          !Array.isArray(exception[field]) ||
+          exception[field].length === 0 ||
+          exception[field].some((advisory) => !isNonEmptyString(advisory))
+        ) {
+          errors.push(`[${label}] advisories doit être un tableau non vide d'identifiants.`);
+        }
+        continue;
+      }
+
       if (!isNonEmptyString(exception[field])) {
         errors.push(`[${label}] champ obligatoire invalide: ${field}.`);
       }
@@ -79,4 +90,38 @@ export function validateExceptionConfig(exceptionConfig, { requireUpstreamPackag
   }
 
   return exceptions;
+}
+
+export function getHighSeverityAdvisoryIds(vulnerability, vulnerabilities) {
+  const ids = new Set();
+  const visited = new Set();
+
+  function visitVia(via) {
+    for (const item of via ?? []) {
+      if (typeof item === "string") {
+        if (visited.has(item)) continue;
+        visited.add(item);
+        visitVia(vulnerabilities[item]?.via);
+      } else if (
+        item &&
+        ["high", "critical"].includes(item.severity) &&
+        item.source !== undefined &&
+        item.source !== null
+      ) {
+        ids.add(String(item.source));
+      }
+    }
+  }
+
+  visitVia(vulnerability?.via);
+  return [...ids].sort();
+}
+
+export function hasExactAdvisories(expected, actual) {
+  const expectedIds = [...expected].map(String).sort();
+  const actualIds = [...actual].map(String).sort();
+  return (
+    expectedIds.length === actualIds.length &&
+    expectedIds.every((advisory, index) => advisory === actualIds[index])
+  );
 }

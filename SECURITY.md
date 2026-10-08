@@ -25,13 +25,14 @@ Temporary exceptions are tracked in:
 
 Active exceptions are reviewed weekly by the upstream monitor and must have:
 - owner,
-- advisory,
+- exact advisory identifiers from `npm audit`,
 - linked issue,
 - expiry date,
 - explicit justification,
 - a concrete removal plan tied to the upstream fix or disappearance of the advisory.
 
 If the targeted vulnerability disappears from audit results, the exception must be removed immediately.
+The audit gate resolves each direct finding's high/critical advisory IDs through its `via` dependency chain and accepts an exception only when that full ID set exactly matches `advisories`; newly introduced findings therefore remain blocking.
 The weekly upstream monitor reports the removal plan and available upstream versions so the owner can test an upgrade and remove the exception and related Dependabot ignore. On expiry, CI fails until the exception is removed or renewed with explicit justification and a new expiry date.
 
 Important: this repository currently contains temporary exception entries for direct Amplify vulnerabilities while upstream fixes are pending. These exceptions are not permanent and should be treated as a temporary risk accepted only under the tracked process above.
