@@ -32,6 +32,12 @@ jobs:
         # réintroduction d'une version Amplify CLI forcée et non publiée.
         run: npm ci
 
+      - name: Vérification TypeScript (typecheck)
+        run: npm run typecheck
+
+      - name: Exécution des tests
+        run: npm test
+
       - name: Vérifier l'usage de glob sans entrée non fiable
         run: node .github/scripts/no-untrusted-glob-patterns.mjs
 

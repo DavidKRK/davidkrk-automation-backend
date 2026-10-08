@@ -3,6 +3,8 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
   assertSimulatedConnectorsAllowed,
   callConnectorWebhook,
+  isWebhookTimestampFresh,
+  verifyWebhookSignature,
 } from "./http";
 
 const defaultContext = {
@@ -29,6 +31,14 @@ test("assertSimulatedConnectorsAllowed rejects simulated connectors outside sand
       AWS_BRANCH: "main",
     } as NodeJS.ProcessEnv)
   ).toThrow(/sandbox or dev deployments/);
+});
+
+test("assertSimulatedConnectorsAllowed rejects simulation without deployment metadata", () => {
+  expect(() =>
+    assertSimulatedConnectorsAllowed({
+      ALLOW_SIMULATED_CONNECTORS: "true",
+    } as NodeJS.ProcessEnv)
+  ).toThrow(/AWS_BRANCH or AMPLIFY_ENV/);
 });
 
 test("assertSimulatedConnectorsAllowed allows simulation in sandbox", () => {
@@ -82,8 +92,32 @@ test("callConnectorWebhook signs payloads and adds an idempotency key", async ()
   expect(headers["content-type"]).toBe("application/json");
   expect(headers["X-Timestamp"]).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   expect(headers["X-Signature"]).toBe(
-    `sha256=${createHmac("sha256", "super-secret").update(body).digest("hex")}`
+    `sha256=${createHmac("sha256", "super-secret")
+      .update(`${headers["X-Timestamp"]}.${body}`)
+      .digest("hex")}`
   );
+  expect(
+    verifyWebhookSignature(body, headers["X-Timestamp"], "super-secret", headers["X-Signature"])
+  ).toBe(true);
+});
+
+test("verifyWebhookSignature rejects stale timestamps", () => {
+  const timestamp = "2026-01-01T00:00:00.000Z";
+  const body = JSON.stringify({ hello: "world" });
+  const signature = `sha256=${createHmac("sha256", "super-secret")
+    .update(`${timestamp}.${body}`)
+    .digest("hex")}`;
+
+  expect(isWebhookTimestampFresh(timestamp, Date.parse("2026-01-01T00:06:00.000Z"))).toBe(false);
+  expect(
+    verifyWebhookSignature(
+      body,
+      timestamp,
+      "super-secret",
+      signature,
+      Date.parse("2026-01-01T00:06:00.000Z")
+    )
+  ).toBe(false);
 });
 
 test("callConnectorWebhook retries on 5xx responses", async () => {

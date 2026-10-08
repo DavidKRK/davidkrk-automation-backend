@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import type { ConnectorResult, StreamDestinationRecord, StreamSessionRecord } from "./types";
 
 export function assertSimulatedConnectorsAllowed(env: NodeJS.ProcessEnv = process.env): void {
@@ -7,7 +7,13 @@ export function assertSimulatedConnectorsAllowed(env: NodeJS.ProcessEnv = proces
   }
 
   const deploymentEnv = env.AWS_BRANCH ?? env.AMPLIFY_ENV;
-  if (deploymentEnv && deploymentEnv !== "sandbox" && deploymentEnv !== "dev") {
+  if (!deploymentEnv) {
+    throw new Error(
+      "ALLOW_SIMULATED_CONNECTORS=true requires AWS_BRANCH or AMPLIFY_ENV to identify a sandbox or dev deployment."
+    );
+  }
+
+  if (deploymentEnv !== "sandbox" && deploymentEnv !== "dev") {
     throw new Error(
       "ALLOW_SIMULATED_CONNECTORS=true is only allowed for sandbox or dev deployments."
     );
@@ -25,6 +31,7 @@ export interface ConnectorWebhookContext {
 const WEBHOOK_TIMEOUT_MS = 10_000;
 const RETRY_BACKOFF_MS = [1_000, 4_000];
 const MAX_ATTEMPTS = RETRY_BACKOFF_MS.length + 1;
+export const WEBHOOK_REPLAY_WINDOW_MS = 5 * 60_000;
 
 function getRequiredEnv(name: string): string {
   const value = process.env[name];
@@ -50,8 +57,44 @@ function buildWebhookBody(payload: Record<string, unknown>, context: ConnectorWe
   };
 }
 
-function signWebhookBody(body: string, secret: string): string {
-  return `sha256=${createHmac("sha256", secret).update(body).digest("hex")}`;
+export function isWebhookTimestampFresh(
+  timestamp: string,
+  nowMs = Date.now(),
+  maxAgeMs = WEBHOOK_REPLAY_WINDOW_MS
+): boolean {
+  const timestampMs = Date.parse(timestamp);
+
+  if (Number.isNaN(timestampMs)) {
+    return false;
+  }
+
+  return nowMs - timestampMs <= maxAgeMs && timestampMs - nowMs <= maxAgeMs;
+}
+
+function signWebhookBody(body: string, timestamp: string, secret: string): string {
+  return `sha256=${createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex")}`;
+}
+
+export function verifyWebhookSignature(
+  body: string,
+  timestamp: string,
+  secret: string,
+  signature: string,
+  nowMs = Date.now()
+): boolean {
+  if (!isWebhookTimestampFresh(timestamp, nowMs)) {
+    return false;
+  }
+
+  const expectedSignature = signWebhookBody(body, timestamp, secret);
+  const expectedBuffer = Buffer.from(expectedSignature);
+  const signatureBuffer = Buffer.from(signature);
+
+  if (expectedBuffer.length !== signatureBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(expectedBuffer, signatureBuffer);
 }
 
 function isAbortError(error: unknown): boolean {
@@ -107,11 +150,12 @@ export async function callConnectorWebhook(
     const timestamp = new Date().toISOString();
 
     try {
+      const signature = signWebhookBody(body, timestamp, secret);
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "X-Signature": signWebhookBody(body, secret),
+          "X-Signature": signature,
           "X-Timestamp": timestamp,
         },
         body,
