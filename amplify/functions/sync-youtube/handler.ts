@@ -1,6 +1,7 @@
 import type { Handler } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { getRequiredEnv, requireSecret } from "../runtime-config";
 
 /**
  * Handler de la fonction sync-youtube
@@ -30,17 +31,6 @@ const MAX_RESULTS_PER_PAGE = 50;
 const MAX_PAGES_PER_RUN = 10;
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
-function getRequiredEnv(name: string): string {
-  const value = process.env[name];
-
-  if (!value) {
-    console.error(`[sync-youtube] Variable d'environnement requise manquante : ${name}.`);
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-
-  return value;
-}
-
 /**
  * Retourne la durée totale en secondes à partir d'une durée ISO 8601 (ex: "PT1M30S" → 90).
  * Retourne Infinity pour les durées invalides, vides, ou comportant des jours
@@ -63,7 +53,7 @@ export function isoToSeconds(isoDuration: string): number {
 
 export const handler: Handler = async () => {
   const TABLE_NAME = getRequiredEnv("CONTENT_POST_TABLE_NAME");
-  const youtubeCredential = getRequiredEnv("YOUTUBE_API_KEY");
+  const youtubeCredential = requireSecret("YOUTUBE_API_KEY");
   const CHANNEL_ID = getRequiredEnv("YOUTUBE_CHANNEL_ID");
 
   try {

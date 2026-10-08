@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { requireSecret } from "../../runtime-config";
 import type { ConnectorResult, StreamDestinationRecord, StreamSessionRecord } from "./types";
 
 export function assertSimulatedConnectorsAllowed(env: NodeJS.ProcessEnv = process.env): void {
@@ -32,16 +33,6 @@ const WEBHOOK_TIMEOUT_MS = 10_000;
 const RETRY_BACKOFF_MS = [1_000, 4_000];
 const MAX_ATTEMPTS = RETRY_BACKOFF_MS.length + 1;
 export const WEBHOOK_REPLAY_WINDOW_MS = 5 * 60_000;
-
-function getRequiredEnv(name: string): string {
-  const value = process.env[name];
-
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-
-  return value;
-}
 
 function buildWebhookBody(payload: Record<string, unknown>, context: ConnectorWebhookContext): {
   body: string;
@@ -145,7 +136,7 @@ export async function callConnectorWebhook(
     };
   }
 
-  const secret = getRequiredEnv("CONNECTOR_WEBHOOK_SECRET");
+  const secret = requireSecret("CONNECTOR_WEBHOOK_SECRET");
   const { body } = buildWebhookBody(payload as Record<string, unknown>, context);
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {

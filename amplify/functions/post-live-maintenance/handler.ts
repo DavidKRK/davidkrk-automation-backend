@@ -6,6 +6,7 @@ import {
   QueryCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { getRequiredEnv } from "../runtime-config";
 
 interface StreamSessionRecord {
   id: string;
@@ -18,16 +19,6 @@ interface StreamSessionRecord {
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const STREAM_SESSION_STATUS_INDEX = "byStatus";
-
-function getRequiredEnv(name: string): string {
-  const value = process.env[name];
-
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-
-  return value;
-}
 
 async function listEndedSessions(tableName: string): Promise<StreamSessionRecord[]> {
   const items: StreamSessionRecord[] = [];
