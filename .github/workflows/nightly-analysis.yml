@@ -10,10 +10,15 @@ permissions:
   contents: read
   issues: write
 
+concurrency:
+  group: nightly-analysis-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   analyse-depot:
     name: "Analyse complète du dépôt"
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout du dépôt

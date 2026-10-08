@@ -12,10 +12,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: security-audit-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   audit-gate:
     name: "Audit gate (direct high/critical)"
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout du dépôt
