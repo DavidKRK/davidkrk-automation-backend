@@ -41,7 +41,7 @@ test("assertSimulatedConnectorsAllowed rejects simulation without deployment met
     assertSimulatedConnectorsAllowed({
       ALLOW_SIMULATED_CONNECTORS: "true",
     } as NodeJS.ProcessEnv)
-  ).toThrow(/AWS_BRANCH or AMPLIFY_ENV/);
+  ).toThrow(/deployment metadata/);
 });
 
 test("assertSimulatedConnectorsAllowed allows simulation in sandbox", () => {
