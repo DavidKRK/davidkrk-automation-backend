@@ -1,31 +1,6 @@
 {
   "exceptions": [
     {
-      "id": "csv-parse-amplify-backend-cli-transitive",
-      "package": "csv-parse",
-      "nodePathContains": "node_modules/csv-parse",
-      "effectContains": "@aws-amplify/graphql-schema-generator",
-      "advisory": "GHSA-8cw4-87c7-c6xx",
-      "severity": "moderate",
-      "owner": "@DavidKRK",
-      "issue": "#98",
-      "upstreamPackage": "@aws-amplify/backend-cli",
-      "expiresOn": "2026-12-31",
-      "reason": "Revalidated on 2026-09-12: Dependabot security updates are blocked because @aws-amplify/backend-cli@1.10.0 still resolves @aws-amplify/schema-generator@1.4.1 -> @aws-amplify/graphql-schema-generator@0.11.16 -> csv-parse@5.6.0."
-    },
-    {
-      "id": "amplify-backend-direct-high-temporary",
-      "package": "@aws-amplify/backend",
-      "nodePathContains": "node_modules/@aws-amplify/backend",
-      "advisory": "npm-audit-amplify-2026-10-04",
-      "severity": "high",
-      "owner": "@DavidKRK",
-      "issue": "#153",
-      "upstreamPackage": "@aws-amplify/backend",
-      "expiresOn": "2026-11-15",
-      "reason": "Exception temporaire: npm audit signale la chaîne Amplify backend en high directe sur cette version, le blocage CI est maintenu via expiration courte et suivi dédié."
-    },
-    {
       "id": "amplify-backend-auth-direct-high-temporary",
       "package": "@aws-amplify/backend-auth",
       "nodePathContains": "node_modules/@aws-amplify/backend-auth",
