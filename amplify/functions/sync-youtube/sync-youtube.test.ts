@@ -21,7 +21,7 @@ test('handler: validation complète', async () => {
   fetchMock.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ items: [{ snippet: { title: 'L', resourceId: { videoId: 'v1' } } }] }) } as Response);
   fetchMock.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ items: [{ id: 'v1', contentDetails: { duration: 'PT1M' } }] }) } as Response);
 
-  const res = await handler({}, {} as any);
+  const res = await handler({} as any, {} as any, {} as any);
   expect(fetchMock).toHaveBeenCalledTimes(3);
   expect(res.statusCode).toBe(200);
 });

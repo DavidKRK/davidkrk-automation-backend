@@ -4,7 +4,7 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
  * Schéma V1.1 — ContentPost + UserUpload
  * ContentPost  : vidéos YouTube synchronisées depuis la chaîne DavidKRK.
  * UserUpload   : fichiers uploadés par les utilisateurs authentifiés (S3).
- * Authorization : ContentPost en lecture publique via API Key ; UserUpload en écriture propriétaire via User Pool, avec lecture publique via API Key.
+ * Authorization : ContentPost en lecture publique via API Key ; UserUpload en écriture propriétaire via User Pool.
  */
 const schema = a.schema({
   /**
@@ -85,7 +85,7 @@ const schema = a.schema({
 
   /**
    * UserUpload — Fichier uploadé par un utilisateur authentifié
-   * Autorisations : propriétaire (CRUD), lecture publique via API Key.
+   * Autorisations : propriétaire (CRUD) uniquement.
    */
   UserUpload: a
     .model({
@@ -109,8 +109,6 @@ const schema = a.schema({
     .authorization((allow) => [
       // Le propriétaire peut créer, lire, modifier et supprimer ses uploads (nécessite User Pool)
       allow.owner(),
-      // Lecture publique ponctuelle via API Key (sans list) ; cette règle ne filtre pas automatiquement sur status
-      allow.publicApiKey().to(["read"]),
     ]),
 
   ContentPost: a
@@ -148,7 +146,7 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    // Mode par défaut : API Key (lecture publique ContentPost / UserUpload)
+    // Mode par défaut : API Key (lecture publique ContentPost)
     defaultAuthorizationMode: "apiKey",
     apiKeyAuthorizationMode: {
       expiresInDays: 365,

@@ -30,7 +30,7 @@ jobs:
       - name: Installation des dépendances
         # S'appuyer sur le manifeste/lockfile du dépôt pour éviter toute
         # réintroduction d'une version Amplify CLI forcée et non publiée.
-        run: npm install
+        run: npm ci
 
       - name: Vérifier l'usage de glob sans entrée non fiable
         run: node .github/scripts/no-untrusted-glob-patterns.mjs
@@ -59,7 +59,7 @@ jobs:
       - name: Installation des dépendances
         # S'appuyer sur le manifeste/lockfile du dépôt pour éviter toute
         # réintroduction d'une version Amplify CLI forcée et non publiée.
-        run: npm install
+        run: npm ci
 
       - name: Générer le rapport audit JSON
         run: npm audit --json > audit.json || true

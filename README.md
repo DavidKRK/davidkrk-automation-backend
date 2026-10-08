@@ -33,7 +33,6 @@ Session de livestream pilotée par orchestrateur backend.
 ### UserUpload
 Fichiers uploadés par les utilisateurs authentifiés (audio, images, etc.).
 - CRUD propriétaire via User Pool (Cognito)
-- Lecture publique via API Key
 
 ## Prise en main
 
@@ -47,7 +46,7 @@ cd davidkrk-automation-backend
 2. Installer les dépendances :
 
 ```bash
-npm install
+npm ci
 ```
 
 3. Vérifier les types TypeScript :
@@ -73,7 +72,7 @@ npx ampx pipeline-deploy --branch <branche> --app-id <app-id>
 | `YOUTUBE_LIVE_WEBHOOK_URL` | Endpoint d'intégration live YouTube (optionnel) |
 | `TWITCH_LIVE_WEBHOOK_URL` | Endpoint d'intégration live Twitch (optionnel) |
 | `FACEBOOK_LIVE_WEBHOOK_URL` | Endpoint d'intégration live Facebook Page (optionnel) |
-| `ALLOW_SIMULATED_CONNECTORS` | `true` pour autoriser un mode simulation sans webhook (sinon échec explicite) |
+| `ALLOW_SIMULATED_CONNECTORS` | `true` pour autoriser un mode simulation sans webhook en sandbox/dev (sinon échec explicite) |
 
 ## Lancement d'un livestream (V1)
 

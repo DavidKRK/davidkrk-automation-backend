@@ -1,10 +1,25 @@
 import type { ConnectorResult } from "./types";
 
+export function assertSimulatedConnectorsAllowed(env: NodeJS.ProcessEnv = process.env): void {
+  if (env.ALLOW_SIMULATED_CONNECTORS !== "true") {
+    return;
+  }
+
+  const deploymentEnv = env.AWS_BRANCH ?? env.AMPLIFY_ENV;
+  if (deploymentEnv && deploymentEnv !== "sandbox" && deploymentEnv !== "dev") {
+    throw new Error(
+      "ALLOW_SIMULATED_CONNECTORS=true is only allowed for sandbox or dev deployments."
+    );
+  }
+}
+
 export async function callConnectorWebhook(
   endpoint: string | undefined,
   payload: unknown,
   fallbackMessage: string
 ): Promise<ConnectorResult> {
+  assertSimulatedConnectorsAllowed();
+
   if (!endpoint) {
     if (process.env.ALLOW_SIMULATED_CONNECTORS === "true") {
       return {

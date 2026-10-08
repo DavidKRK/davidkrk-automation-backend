@@ -154,7 +154,7 @@ async function listDestinations(tableName: string): Promise<StreamDestinationRec
   return destinations.flat().filter((destination) => destination.enabled);
 }
 
-async function updateSession(
+export async function updateSession(
   tableName: string,
   sessionId: string,
   status: string,
