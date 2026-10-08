@@ -7,7 +7,7 @@ vi.mock('@aws-sdk/lib-dynamodb', async (init) => {
 });
 
 process.env.CONTENT_POST_TABLE_NAME = 'TestTable';
-process.env.YOUTUBE_API_KEY = 'FakeKey';
+process.env.YOUTUBE_API_KEY = 'FakeYoutubeApiKey123';
 process.env.YOUTUBE_CHANNEL_ID = 'FakeChannel';
 
 beforeEach(() => {

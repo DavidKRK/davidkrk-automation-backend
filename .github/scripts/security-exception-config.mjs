@@ -7,6 +7,8 @@ const REQUIRED_EXCEPTION_FIELDS = [
   "owner",
   "issue",
   "expiresOn",
+  "reason",
+  "removalPlan",
 ];
 
 const VALID_SEVERITIES = new Set(["low", "moderate", "high", "critical"]);

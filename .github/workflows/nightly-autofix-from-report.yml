@@ -12,7 +12,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: nightly-autofix-${{ github.ref }}
+  group: nightly-autofix
   cancel-in-progress: false
 
 jobs:

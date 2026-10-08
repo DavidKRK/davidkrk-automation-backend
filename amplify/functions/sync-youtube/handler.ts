@@ -185,10 +185,7 @@ if (pageToken) {
         ? `https://www.youtube.com/shorts/${videoId}`
         : `https://www.youtube.com/watch?v=${videoId}`;
 
-      const sourceExternalId = `youtube#${videoId}`;
       const post = {
-        // Clé primaire unique dérivée pour éviter les collisions sur la partition DynamoDB.
-        sourceExternalId,
         source: "youtube",
         externalId: videoId,
         title: snippet?.title ?? "Sans titre",
@@ -220,9 +217,8 @@ if (pageToken) {
           new PutCommand({
             TableName: TABLE_NAME,
             Item: post,
-            // La clé unique est sourceExternalId. Cette condition empêche la création d'un doublon
-            // même si plusieurs vidéos partagent la même source ou le même externalId.
-            ConditionExpression: "attribute_not_exists(sourceExternalId)",
+            // L'identifiant composite déployé empêche les doublons pour cette source et vidéo.
+            ConditionExpression: "attribute_not_exists(source)",
           })
         );
         created++;

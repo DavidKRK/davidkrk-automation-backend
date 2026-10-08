@@ -113,11 +113,9 @@ const schema = a.schema({
 
   ContentPost: a
     .model({
-      /** Clé unique de stockage : `${source}#${externalId}` — permet l'idempotence robuste au niveau table */
-      sourceExternalId: a.string().required(),
       /** Source du contenu : 'youtube' | 'soundcloud' | 'mixcloud' | ... */
       source: a.string().required(),
-      /** ID externe de la vidéo/track (ex: YouTube videoId) */
+      /** ID externe de la vidéo/track (ex: YouTube videoId) — forme la clé composite avec source */
       externalId: a.string().required(),
       /** Titre de la vidéo */
       title: a.string().required(),
@@ -134,9 +132,8 @@ const schema = a.schema({
       /** JSON brut de la réponse API (pour debug / enrichissement futur) */
       rawJson: a.string(),
     })
-    // Clé unique basée sur une identité dérivée (source#externalId) pour éviter la collision
-    // sur la partition DynamoDB et garantir une insertion idempotente fiable.
-    .identifier(["sourceExternalId"])
+    // Conserver l'identifiant composite déployé pour éviter de recréer la table DynamoDB.
+    .identifier(["source", "externalId"])
     .authorization((allow) => [
       // Lecture publique via API Key (ton site front)
       allow.publicApiKey().to(["read"]),

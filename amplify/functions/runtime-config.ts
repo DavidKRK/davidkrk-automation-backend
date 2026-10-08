@@ -53,20 +53,67 @@ export function getRequiredEnv(name: string): string {
 
 export function requireSecret(name: string): string {
   const value = getRequiredEnv(name);
-  const minimumLength = process.env.NODE_ENV === "test" ? 1 : 12;
 
-  if (value.length < minimumLength) {
+  if (value.length < 12) {
     throw new Error(`Secret ${name} is too short to be trusted.`);
   }
 
   return value;
 }
 
-export function isValidHttpUrl(value: string): boolean {
+function isProduction(env: NodeJS.ProcessEnv): boolean {
+  const deploymentNames = [env.AWS_BRANCH, env.AMPLIFY_ENV]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.trim().toLowerCase());
+
+  if (
+    env.NODE_ENV === "production" ||
+    deploymentNames.some((name) => ["main", "prod", "production"].includes(name))
+  ) {
+    return true;
+  }
+
+  return !deploymentNames.some((name) => ["sandbox", "dev", "development"].includes(name));
+}
+
+export function validateHttpUrl(
+  value: string,
+  env: NodeJS.ProcessEnv = process.env
+): string {
   try {
     const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:";
+    if (
+      (url.protocol !== "https:" && url.protocol !== "http:") ||
+      !url.hostname ||
+      url.username ||
+      url.password ||
+      (isProduction(env) && url.protocol !== "https:")
+    ) {
+      throw new Error();
+    }
+
+    return url.toString();
   } catch {
-    return false;
+    throw new Error(
+      `Environment variable webhook URL must be a valid ${isProduction(env) ? "HTTPS" : "HTTP or HTTPS"} URL.`
+    );
+  }
+}
+
+export function getOptionalWebhookUrl(
+  name: string,
+  env: NodeJS.ProcessEnv = process.env
+): string | undefined {
+  const value = env[name]?.trim();
+  if (!value) return undefined;
+
+  if (isLikelyPlaceholder(value)) {
+    throw new Error(`Environment variable ${name} contains a placeholder or invalid value.`);
+  }
+
+  try {
+    return validateHttpUrl(value, env);
+  } catch {
+    throw new Error(`Environment variable ${name} contains an invalid webhook URL.`);
   }
 }

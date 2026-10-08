@@ -45,7 +45,7 @@ jobs:
         # Snyk can be used to break the build when it detects security issues.
         # In this case we want to upload the issues to GitHub Code Scanning
         continue-on-error: true
-        uses: snyk/actions/iac@14818c4695ecc4045f33c9cee9e795a788711ca4
+        uses: snyk/actions/iac@c7971c2fc036368a2c59c8d48a0357dad1780f0d
         with:
           # Scan the whole repository for supported Infrastructure as Code
           # configuration files (e.g. CloudFormation, Terraform, Kubernetes).
@@ -57,6 +57,6 @@ jobs:
           echo "SNYK_TOKEN non configuré: scan Snyk IaC ignoré."
       - name: Upload result to GitHub Code Scanning
         if: env.SNYK_TOKEN != '' && hashFiles('snyk.sarif') != ''
-        uses: github/codeql-action/upload-sarif@f3c49fd1ef3281abc41069b3dd22807a60c963f6
+        uses: github/codeql-action/upload-sarif@9f759ee644a3e7c15c1390abf49868036c00067b
         with:
           sarif_file: snyk.sarif

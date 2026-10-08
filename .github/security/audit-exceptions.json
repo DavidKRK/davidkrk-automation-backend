@@ -11,7 +11,8 @@
       "issue": "#98",
       "upstreamPackage": "@aws-amplify/backend-cli",
       "expiresOn": "2026-12-31",
-      "reason": "Revalidated on 2026-09-12: Dependabot security updates are blocked because @aws-amplify/backend-cli@1.10.0 still resolves @aws-amplify/schema-generator@1.4.1 -> @aws-amplify/graphql-schema-generator@0.11.16 -> csv-parse@5.6.0."
+      "reason": "Revalidated on 2026-09-12: Dependabot security updates are blocked because @aws-amplify/backend-cli@1.10.0 still resolves @aws-amplify/schema-generator@1.4.1 -> @aws-amplify/graphql-schema-generator@0.11.16 -> csv-parse@5.6.0.",
+      "removalPlan": "Review the upstream package weekly. When a compatible release removes the vulnerable dependency path, upgrade the Amplify toolchain, verify the audit no longer reports this advisory, then remove this exception and its Dependabot ignore."
     },
     {
       "id": "amplify-backend-direct-high-temporary",
@@ -23,7 +24,8 @@
       "issue": "#153",
       "upstreamPackage": "@aws-amplify/backend",
       "expiresOn": "2026-11-15",
-      "reason": "Exception temporaire: npm audit signale la chaîne Amplify backend en high directe sur cette version, le blocage CI est maintenu via expiration courte et suivi dédié."
+      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/backend; le suivi de correction est centralisé dans l’issue #153. L’exception reste limitée par l’expiration et le gate CI bloque les findings non couverts.",
+      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
     },
     {
       "id": "amplify-backend-auth-direct-high-temporary",
@@ -35,7 +37,8 @@
       "issue": "#153",
       "upstreamPackage": "@aws-amplify/backend-auth",
       "expiresOn": "2026-11-15",
-      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, sans correctif amont compatible validé dans ce cycle."
+      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/backend-auth; l’évaluation d’une version amont corrigée est suivie dans l’issue #153. L’exception expire le 2026-11-15.",
+      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
     },
     {
       "id": "amplify-backend-cli-direct-high-temporary",
@@ -47,7 +50,8 @@
       "issue": "#153",
       "upstreamPackage": "@aws-amplify/backend-cli",
       "expiresOn": "2026-11-15",
-      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, en attente de correction amont stable."
+      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/backend-cli; l’upgrade correctif est suivi dans l’issue #153. L’exception expire le 2026-11-15.",
+      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
     },
     {
       "id": "amplify-backend-data-direct-high-temporary",
@@ -59,7 +63,8 @@
       "issue": "#153",
       "upstreamPackage": "@aws-amplify/backend-data",
       "expiresOn": "2026-11-15",
-      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, avec suivi d'upgrade dédié."
+      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/backend-data; la validation d’un upgrade correctif est suivie dans l’issue #153. L’exception expire le 2026-11-15.",
+      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
     },
     {
       "id": "amplify-backend-function-direct-high-temporary",
@@ -71,7 +76,8 @@
       "issue": "#153",
       "upstreamPackage": "@aws-amplify/backend-function",
       "expiresOn": "2026-11-15",
-      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, en attente de correction amont."
+      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/backend-function; la validation d’un upgrade correctif est suivie dans l’issue #153. L’exception expire le 2026-11-15.",
+      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
     },
     {
       "id": "amplify-backend-storage-direct-high-temporary",
@@ -83,7 +89,8 @@
       "issue": "#153",
       "upstreamPackage": "@aws-amplify/backend-storage",
       "expiresOn": "2026-11-15",
-      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, avec expiration rapprochée."
+      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/backend-storage; la validation d’un upgrade correctif est suivie dans l’issue #153. L’exception expire le 2026-11-15.",
+      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
     },
     {
       "id": "amplify-data-construct-direct-high-temporary",
@@ -95,7 +102,8 @@
       "issue": "#153",
       "upstreamPackage": "@aws-amplify/data-construct",
       "expiresOn": "2026-11-15",
-      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, en attente de publication amont corrigée."
+      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/data-construct; la validation d’un upgrade correctif est suivie dans l’issue #153. L’exception expire le 2026-11-15.",
+      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
     },
     {
       "id": "amplify-graphql-api-construct-direct-high-temporary",
@@ -107,7 +115,8 @@
       "issue": "#153",
       "upstreamPackage": "@aws-amplify/graphql-api-construct",
       "expiresOn": "2026-11-15",
-      "reason": "Exception temporaire: vulnérabilité directe signalée par npm audit, avec suivi dans le ticket dédié."
+      "reason": "npm audit signale une vulnérabilité high directe sur @aws-amplify/graphql-api-construct; la validation d’un upgrade correctif est suivie dans l’issue #153. L’exception expire le 2026-11-15.",
+      "removalPlan": "Surveiller la publication d’une version corrigée dans l’issue #153. La mettre à niveau, vérifier l’audit et les tests, puis supprimer cette exception dès que l’avis n’est plus présent; à défaut, la retirer ou renouveler avec une justification avant son expiration."
     }
   ]
 }

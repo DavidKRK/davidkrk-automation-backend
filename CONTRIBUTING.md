@@ -55,7 +55,7 @@ opensource-codeofconduct@amazon.com with any additional questions or comments.
 
 
 ## Security issue notifications
-If you discover a potential security issue in this project, please do not create a public GitHub issue. Instead, follow the security reporting process in [SECURITY.md](SECURITY.md) and notify the project maintainers through the private vulnerability reporting process described there.
+If you discover a potential security issue in this project, please do not create a public GitHub issue. Follow the reporting process in [SECURITY.md](SECURITY.md), which directs reports to AWS/Amazon Security.
 
 
 ## Licensing

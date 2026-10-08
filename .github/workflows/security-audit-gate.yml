@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: security-audit-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: security-audit-${{ github.workflow }}-${{ github.event_name }}
+  cancel-in-progress: false
 
 jobs:
   audit-gate:

@@ -11,8 +11,8 @@ permissions:
   issues: write
 
 concurrency:
-  group: nightly-analysis-${{ github.ref }}
-  cancel-in-progress: true
+  group: nightly-analysis
+  cancel-in-progress: false
 
 jobs:
   analyse-depot:

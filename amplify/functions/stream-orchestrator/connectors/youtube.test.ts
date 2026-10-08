@@ -1,7 +1,7 @@
 import { beforeEach, expect, test, vi } from "vitest";
 
 vi.hoisted(() => {
-  process.env.YOUTUBE_LIVE_WEBHOOK_URL = "https://example.test/webhook";
+  process.env.YOUTUBE_LIVE_WEBHOOK_URL = "https://hooks.test/webhook";
 });
 
 const callConnectorWebhookMock = vi.hoisted(() => vi.fn());
@@ -28,7 +28,7 @@ test("youtube connector builds the prepare payload with session and destination"
   await youtubeConnector.prepareLive(session, destination);
 
   expect(callConnectorWebhookMock).toHaveBeenCalledWith(
-    "https://example.test/webhook",
+    "https://hooks.test/webhook",
     {
       action: "prepare",
       session,

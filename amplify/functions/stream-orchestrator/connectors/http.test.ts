@@ -20,6 +20,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   vi.useRealTimers();
   delete process.env.CONNECTOR_WEBHOOK_SECRET;
 });
@@ -76,6 +77,7 @@ test("callConnectorWebhook signs payloads and adds an idempotency key", async ()
     message: "ok",
     liveUrl: "https://live.example",
   });
+
   expect(fetchMock).toHaveBeenCalledTimes(1);
 
   const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -107,6 +109,15 @@ test("callConnectorWebhook signs payloads and adds an idempotency key", async ()
       headers["X-Signature-Timestamped"]
     )
   ).toBe(true);
+});
+
+test("callConnectorWebhook refuses non-HTTPS endpoints in production", async () => {
+  vi.stubEnv("NODE_ENV", "production");
+
+  await expect(
+    callConnectorWebhook("http://webhook.example.org/hook", {}, "fallback", defaultContext)
+  ).rejects.toThrow(/HTTPS/);
+  expect(global.fetch).not.toHaveBeenCalled();
 });
 
 test("verifyWebhookSignature rejects stale timestamps", () => {

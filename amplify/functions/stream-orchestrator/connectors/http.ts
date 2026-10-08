@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { requireSecret } from "../../runtime-config";
+import { requireSecret, validateHttpUrl } from "../../runtime-config";
 import type { ConnectorResult, StreamDestinationRecord, StreamSessionRecord } from "./types";
 
 export function assertSimulatedConnectorsAllowed(env: NodeJS.ProcessEnv = process.env): void {
@@ -136,6 +136,7 @@ export async function callConnectorWebhook(
     };
   }
 
+  const validatedEndpoint = validateHttpUrl(endpoint);
   const secret = requireSecret("CONNECTOR_WEBHOOK_SECRET");
   const { body } = buildWebhookBody(payload as Record<string, unknown>, context);
 
@@ -147,7 +148,7 @@ export async function callConnectorWebhook(
     try {
       const signature = signWebhookBody(body, secret);
       const timestampedSignature = signWebhookBodyWithTimestamp(body, timestamp, secret);
-      const response = await fetch(endpoint, {
+      const response = await fetch(validatedEndpoint, {
         method: "POST",
         headers: {
           "content-type": "application/json",
