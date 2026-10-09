@@ -43,6 +43,10 @@ GitHub provides additional documentation on [forking a repository](https://help.
 
 If you have a GitHub Actions job named **`claude`** and it fails with `model_not_available_for_integrator`, rerun the task with **Auto** or another currently supported Claude model instead of `claude-opus-4.6`.
 
+### Codex coding agent
+
+If a Codex run fails with `modèle introuvable ou non activé pour l'utilisateur` (for example with `gpt-5.6-terra`), rerun the task with **Auto** model selection or a model that is enabled for your account.
+
 
 ## Finding contributions to work on
 Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any 'help wanted' issues is a great place to start.
