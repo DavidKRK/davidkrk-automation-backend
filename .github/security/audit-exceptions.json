@@ -1,20 +1,6 @@
 {
   "exceptions": [
     {
-      "id": "csv-parse-amplify-backend-cli-transitive",
-      "package": "csv-parse",
-      "nodePathContains": "node_modules/csv-parse",
-      "effectContains": "@aws-amplify/graphql-schema-generator",
-      "advisories": ["GHSA-8cw4-87c7-c6xx"],
-      "severity": "moderate",
-      "owner": "@DavidKRK",
-      "issue": "#98",
-      "upstreamPackage": "@aws-amplify/backend-cli",
-      "expiresOn": "2026-12-31",
-      "reason": "Revalidated on 2026-09-12: Dependabot security updates are blocked because @aws-amplify/backend-cli@1.10.0 still resolves @aws-amplify/schema-generator@1.4.1 -> @aws-amplify/graphql-schema-generator@0.11.16 -> csv-parse@5.6.0.",
-      "removalPlan": "Review the upstream package weekly. When a compatible release removes the vulnerable dependency path, upgrade the Amplify toolchain, verify the audit no longer reports this advisory, then remove this exception and its Dependabot ignore."
-    },
-    {
       "id": "amplify-backend-auth-direct-high-temporary",
       "package": "@aws-amplify/backend-auth",
       "nodePathContains": "node_modules/@aws-amplify/backend-auth",
