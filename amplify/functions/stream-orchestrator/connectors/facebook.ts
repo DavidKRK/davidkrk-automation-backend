@@ -1,7 +1,8 @@
 import { callConnectorWebhook } from "./http";
 import type { PlatformConnector } from "./types";
+import { getOptionalWebhookUrl } from "../../runtime-config";
 
-const endpoint = process.env.FACEBOOK_LIVE_WEBHOOK_URL;
+const endpoint = getOptionalWebhookUrl("FACEBOOK_LIVE_WEBHOOK_URL");
 
 export const facebookConnector: PlatformConnector = {
   platform: "facebook",

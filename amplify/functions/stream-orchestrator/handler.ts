@@ -5,6 +5,7 @@ import {
   QueryCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { getRequiredEnv } from "../runtime-config";
 import { getConnector } from "./connectors";
 import type {
   ConnectorResult,
@@ -14,16 +15,6 @@ import type {
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const STATUS_INDEX_NAME = "byStatus";
-
-function getRequiredEnv(name: string): string {
-  const value = process.env[name];
-
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-
-  return value;
-}
 
 function parseDestinationIds(raw: string | undefined): string[] | undefined | null {
   if (!raw) return undefined;

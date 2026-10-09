@@ -132,8 +132,7 @@ const schema = a.schema({
       /** JSON brut de la réponse API (pour debug / enrichissement futur) */
       rawJson: a.string(),
     })
-    // Clé composite (source, externalId) — garantit l'unicité au niveau DynamoDB
-    // et permet à la Lambda de faire une insertion idempotente (create-if-not-exists) sans index secondaire.
+    // Conserver l'identifiant composite déployé pour éviter de recréer la table DynamoDB.
     .identifier(["source", "externalId"])
     .authorization((allow) => [
       // Lecture publique via API Key (ton site front)

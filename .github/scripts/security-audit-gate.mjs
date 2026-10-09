@@ -1,5 +1,9 @@
 import fs from "node:fs";
-import { validateExceptionConfig } from "./security-exception-config.mjs";
+import {
+  getHighSeverityAdvisoryIds,
+  hasExactAdvisories,
+  validateExceptionConfig,
+} from "./security-exception-config.mjs";
 
 const auditPath = process.argv[2] ?? "audit.json";
 const exceptionsPath = process.argv[3] ?? ".github/security/audit-exceptions.json";
@@ -35,6 +39,11 @@ for (const [name, vuln] of vulnerabilities) {
 
     const nodes = vuln.nodes ?? [];
     if (!nodes.some((node) => node.includes(exception.nodePathContains))) {
+      return false;
+    }
+
+    const advisoryIds = getHighSeverityAdvisoryIds(vuln, audit.vulnerabilities ?? {});
+    if (!hasExactAdvisories(exception.advisories, advisoryIds)) {
       return false;
     }
 

@@ -1,7 +1,8 @@
 import { callConnectorWebhook } from "./http";
 import type { PlatformConnector } from "./types";
+import { getOptionalWebhookUrl } from "../../runtime-config";
 
-const endpoint = process.env.TWITCH_LIVE_WEBHOOK_URL;
+const endpoint = getOptionalWebhookUrl("TWITCH_LIVE_WEBHOOK_URL");
 
 export const twitchConnector: PlatformConnector = {
   platform: "twitch",

@@ -1,6 +1,7 @@
 import type { Handler } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { getRequiredEnv, requireSecret } from "../runtime-config";
 
 /**
  * Handler de la fonction sync-youtube
@@ -30,17 +31,6 @@ const MAX_RESULTS_PER_PAGE = 50;
 const MAX_PAGES_PER_RUN = 10;
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
-function getRequiredEnv(name: string): string {
-  const value = process.env[name];
-
-  if (!value) {
-    console.error(`[sync-youtube] Variable d'environnement requise manquante : ${name}.`);
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-
-  return value;
-}
-
 /**
  * Retourne la durée totale en secondes à partir d'une durée ISO 8601 (ex: "PT1M30S" → 90).
  * Retourne Infinity pour les durées invalides, vides, ou comportant des jours
@@ -63,7 +53,7 @@ export function isoToSeconds(isoDuration: string): number {
 
 export const handler: Handler = async () => {
   const TABLE_NAME = getRequiredEnv("CONTENT_POST_TABLE_NAME");
-  const youtubeCredential = getRequiredEnv("YOUTUBE_API_KEY");
+  const youtubeCredential = requireSecret("YOUTUBE_API_KEY");
   const CHANNEL_ID = getRequiredEnv("YOUTUBE_CHANNEL_ID");
 
   try {
@@ -196,9 +186,6 @@ if (pageToken) {
         : `https://www.youtube.com/watch?v=${videoId}`;
 
       const post = {
-        // Clé primaire composite DynamoDB (générée par .identifier(["source", "externalId"])) :
-        //   source     → partition key
-        //   externalId → sort key
         source: "youtube",
         externalId: videoId,
         title: snippet?.title ?? "Sans titre",
@@ -230,10 +217,7 @@ if (pageToken) {
           new PutCommand({
             TableName: TABLE_NAME,
             Item: post,
-            // attribute_not_exists(source) est l'idiome DynamoDB standard pour "créer seulement
-            // si l'item n'existe pas encore" : DynamoDB évalue cette condition dans le contexte
-            // de l'item identifié par la clé composite exacte (source, externalId), donc un item
-            // avec le même externalId mais une source différente n'est pas concerné.
+            // L'identifiant composite déployé empêche les doublons pour cette source et vidéo.
             ConditionExpression: "attribute_not_exists(source)",
           })
         );

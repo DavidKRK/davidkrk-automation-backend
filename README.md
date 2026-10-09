@@ -75,6 +75,24 @@ npx ampx pipeline-deploy --branch <branche> --app-id <app-id>
 | `CONNECTOR_WEBHOOK_SECRET` | Secret Amplify utilisé pour signer les appels webhook sortants |
 | `ALLOW_SIMULATED_CONNECTORS` | `true` pour autoriser un mode simulation sans webhook uniquement en sandbox/dev quand `AWS_BRANCH` ou `AMPLIFY_ENV` est défini (sinon échec explicite) |
 
+### Contrôles opérationnels avant mise en production
+
+Chaque environnement doit être créé et déployé séparément dans Amplify. Avant un déploiement de production, l’opérateur doit vérifier dans la console que la branche cible est `main`, que l’application et les ressources AWS sont celles de production, et que chaque variable et secret requis a été configuré dans le scope de cette application uniquement. Ne copiez jamais les valeurs de secret dans Git, les journaux ou les tickets. En production, `ALLOW_SIMULATED_CONNECTORS` doit rester `false`; les URLs webhook configurées doivent être en HTTPS.
+
+Checklist de mise en service :
+
+- [ ] Confirmer les identifiants d’application/branche et les ressources AWS du bon environnement.
+- [ ] Confirmer les permissions IAM, variables et secrets séparés pour sandbox et production, sans afficher leurs valeurs.
+- [ ] Exécuter typecheck, tests et audit sur le commit candidat ; vérifier que les checks CI requis sont verts.
+- [ ] Vérifier les URLs webhook et effectuer un test opérationnel contrôlé avant ouverture du trafic.
+- [ ] Identifier l’opérateur, le responsable de validation et le build Amplify précédent auquel revenir.
+
+### Rollback et réponse à incident
+
+En cas d’échec de déploiement ou de régression, suspendre les opérations automatisées concernées et limiter le trafic ou désactiver l’intégration touchée. Dans Amplify Console, redéployer le dernier build connu comme sain sur la même branche/environnement ; ne basculez pas vers une branche ou une application d’un autre environnement. Vérifier ensuite les logs Lambda/AppSync, les alarmes, les appels webhook et les écritures DynamoDB, puis confirmer le retour au service normal.
+
+Pour un incident impliquant un secret, révoquer le secret et en faire une rotation dans son environnement, mettre à jour la configuration sans le publier, et vérifier les journaux pour repérer les usages anormaux. Pour toute modification de schéma ou de clé DynamoDB, arrêter le déploiement et restaurer depuis le point de sauvegarde DynamoDB vérifié selon la procédure de l’opérateur AWS ; ne pas tenter une restauration destructive ou rejouer des écritures sans validation. Consigner la chronologie, l’impact, les actions et le suivi dans un ticket d’incident. Ces contrôles doivent être confirmés dans l’environnement AWS réel avant d’affirmer que la production est prête.
+
 ## Lancement d'un livestream (V1)
 
 1. Créer/activer les `StreamDestination` (YouTube/Twitch/Facebook).

@@ -70,6 +70,7 @@ for (const exception of exceptions) {
   console.log(`  - Vulnérabilité ciblée encore présente: ${stillPresent ? "oui" : "non"}`);
   console.log(`  - Exception expire le: ${exception.expiresOn}`);
   console.log(`  - Suivi: ${exception.issue}`);
+  console.log(`  - Plan de retrait: ${exception.removalPlan}`);
 
   if (today > exception.expiresOn) {
     console.error(

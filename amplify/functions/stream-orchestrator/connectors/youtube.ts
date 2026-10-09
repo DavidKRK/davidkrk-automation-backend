@@ -1,7 +1,8 @@
 import { callConnectorWebhook } from "./http";
 import type { PlatformConnector } from "./types";
+import { getOptionalWebhookUrl } from "../../runtime-config";
 
-const endpoint = process.env.YOUTUBE_LIVE_WEBHOOK_URL;
+const endpoint = getOptionalWebhookUrl("YOUTUBE_LIVE_WEBHOOK_URL");
 
 export const youtubeConnector: PlatformConnector = {
   platform: "youtube",
