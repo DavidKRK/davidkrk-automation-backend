@@ -2,8 +2,8 @@ name: "🔍 Analyse Nocturne du Dépôt"
 
 on:
   schedule:
-    # Tous les jours à 2h du matin (UTC)
-    - cron: "0 2 * * *"
+    # Chaque dimanche à 02:00 UTC
+    - cron: "0 2 * * 0"
   workflow_dispatch:
 
 permissions:
