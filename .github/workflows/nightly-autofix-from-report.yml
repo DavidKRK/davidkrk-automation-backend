@@ -3,8 +3,8 @@ name: Nightly AutoFix from Analysis Report (V2)
 on:
   workflow_dispatch:
   schedule:
-    # 02:20 UTC chaque nuit (après le rapport de 02:00 UTC)
-    - cron: "20 2 * * *"
+    # Chaque dimanche à 02:30 UTC (après le rapport de 02:00 UTC)
+    - cron: "30 2 * * 0"
 
 permissions:
   contents: write
