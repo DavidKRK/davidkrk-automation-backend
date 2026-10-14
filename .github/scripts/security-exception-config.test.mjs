@@ -40,6 +40,17 @@ describe("temporary audit exception configuration", () => {
     expect(() => validateExceptionConfig(invalidConfig)).toThrow(/advisories/);
   });
 
+  it("tracks current high/critical advisories for direct Amplify exceptions", () => {
+    expect(
+      config.exceptions.find((exception) => exception.package === "@aws-amplify/backend-cli")
+        .advisories
+    ).toEqual(["1241230", "1241677", "1242173"]);
+    expect(
+      config.exceptions.find((exception) => exception.package === "@aws-amplify/backend-data")
+        .advisories
+    ).toEqual(["1240992", "1241230", "1241677", "1242173"]);
+  });
+
   it("collects high/critical advisory IDs through the audit dependency chain", () => {
     const vulnerabilities = {
       direct: { via: ["transitive", "another"] },
