@@ -17,7 +17,7 @@
       "id": "amplify-backend-cli-direct-high-temporary",
       "package": "@aws-amplify/backend-cli",
       "nodePathContains": "node_modules/@aws-amplify/backend-cli",
-      "advisories": ["1241230", "1241677", "1242173"],
+      "advisories": ["1240992", "1241230", "1241677", "1242173"],
       "severity": "high",
       "owner": "@DavidKRK",
       "issue": "#171",
@@ -90,6 +90,19 @@
       "expiresOn": "2026-11-15",
       "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/graphql-api-construct; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
       "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/graphql-api-construct dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
+    },
+    {
+      "id": "amplify-backend-direct-high-temporary",
+      "package": "@aws-amplify/backend",
+      "nodePathContains": "node_modules/@aws-amplify/backend",
+      "advisories": ["1240992", "1241230", "1241677", "1242173"],
+      "severity": "high",
+      "owner": "@DavidKRK",
+      "issue": "#171",
+      "upstreamPackage": "@aws-amplify/backend",
+      "expiresOn": "2026-11-15",
+      "reason": "npm audit rapporte un finding high direct pour @aws-amplify/backend, causé par des dépendances Amplify déjà suivies dans l’issue #171. Cette exception temporaire expire le 2026-11-15.",
+      "removalPlan": "Suivre les avis et les releases de @aws-amplify/backend dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin et ces avis ont disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     }
   ]
 }
