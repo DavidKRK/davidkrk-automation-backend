@@ -44,7 +44,7 @@ describe("temporary audit exception configuration", () => {
     expect(
       config.exceptions.find((exception) => exception.package === "@aws-amplify/backend-cli")
         .advisories
-    ).toEqual(["1241230", "1241677", "1242173"]);
+    ).toEqual(["1240992", "1241230", "1241677", "1242173"]);
     expect(
       config.exceptions.find((exception) => exception.package === "@aws-amplify/backend-data")
         .advisories
