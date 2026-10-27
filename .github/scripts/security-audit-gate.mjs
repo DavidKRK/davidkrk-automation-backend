@@ -19,7 +19,34 @@ try {
   process.exit(1);
 }
 
-const vulnerabilities = Object.entries(audit.vulnerabilities ?? {});
+// npm peut renvoyer un objet d'erreur JSON au lieu d'un rapport exploitable.
+// Ne jamais interpréter l'absence de findings comme un audit réussi.
+if (
+  !audit ||
+  typeof audit !== "object" ||
+  Array.isArray(audit) ||
+  audit.error ||
+  !audit.vulnerabilities ||
+  typeof audit.vulnerabilities !== "object" ||
+  Array.isArray(audit.vulnerabilities)
+) {
+  console.error("Rapport npm audit invalide ou en erreur: policy non évaluée.");
+  process.exit(1);
+}
+
+const vulnerabilities = Object.entries(audit.vulnerabilities);
+if (vulnerabilities.some(([, vulnerability]) =>
+  !vulnerability ||
+  typeof vulnerability !== "object" ||
+  Array.isArray(vulnerability) ||
+  !["info", "low", "moderate", "high", "critical"].includes(vulnerability.severity) ||
+  typeof vulnerability.isDirect !== "boolean" ||
+  !Array.isArray(vulnerability.via) ||
+  !Array.isArray(vulnerability.nodes)
+)) {
+  console.error("Rapport npm audit invalide: structure de vulnérabilité inattendue.");
+  process.exit(1);
+}
 
 const blockers = [];
 const allowedExceptions = [];
@@ -32,8 +59,11 @@ for (const [name, vuln] of vulnerabilities) {
     continue;
   }
 
-  const match = exceptions.find((exception) => {
-    if (exception.package !== name) {
+  const advisoryIds = getHighSeverityAdvisoryIds(vuln, audit.vulnerabilities);
+  const configuredExceptions = exceptions.filter((exception) => exception.package === name);
+
+  const match = configuredExceptions.find((exception) => {
+    if (exception.severity !== vuln.severity) {
       return false;
     }
 
@@ -42,7 +72,6 @@ for (const [name, vuln] of vulnerabilities) {
       return false;
     }
 
-    const advisoryIds = getHighSeverityAdvisoryIds(vuln, audit.vulnerabilities ?? {});
     if (!hasExactAdvisories(exception.advisories, advisoryIds)) {
       return false;
     }
@@ -57,7 +86,15 @@ for (const [name, vuln] of vulnerabilities) {
 
   if (!match) {
     if (vuln.isDirect) {
-      blockers.push(`${name}: vulnérabilité ${vuln.severity} directe`);
+      const observed = advisoryIds.join(", ") || "aucun identifiant exploitable";
+      const configured = configuredExceptions.length === 0
+        ? "aucune exception configurée"
+        : configuredExceptions.map((exception) =>
+            `${exception.id}: advisories=[${[...exception.advisories].sort().join(", ")}], severity=${exception.severity}, expiresOn=${exception.expiresOn}`
+          ).join("; ");
+      blockers.push(
+        `${name}: vulnérabilité ${vuln.severity} directe; observés=[${observed}]; configuration: ${configured}; aucune exception exacte applicable`
+      );
       continue;
     }
     transitiveWarnings.push(`${name}: vulnérabilité ${vuln.severity} transitive (non bloquante)`);
