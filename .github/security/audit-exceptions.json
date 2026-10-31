@@ -1,6 +1,6 @@
 {
   "exceptions": [
-{
+    {
       "id": "amplify-backend-direct-high-temporary",
       "package": "@aws-amplify/backend",
       "nodePathContains": "node_modules/@aws-amplify/backend",
