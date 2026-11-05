@@ -41,14 +41,22 @@ describe("temporary audit exception configuration", () => {
   });
 
   it("tracks current high/critical advisories for direct Amplify exceptions", () => {
+    const expectedAdvisories = {
+      "@aws-amplify/backend": ["1241230", "1241677", "1242173", "1242879", "1243066"],
+      "@aws-amplify/backend-auth": ["1243066"],
+      "@aws-amplify/backend-cli": ["1241230", "1241677", "1242173", "1242879", "1243066"],
+      "@aws-amplify/backend-data": ["1241230", "1241677", "1242173", "1242879", "1243066"],
+      "@aws-amplify/backend-function": ["1243066"],
+      "@aws-amplify/backend-storage": ["1243066"],
+      "@aws-amplify/data-construct": ["1243066"],
+      "@aws-amplify/graphql-api-construct": ["1243066"],
+    };
+
     expect(
-      config.exceptions.find((exception) => exception.package === "@aws-amplify/backend-cli")
-        .advisories
-    ).toEqual(["1241230", "1241677", "1242173"]);
-    expect(
-      config.exceptions.find((exception) => exception.package === "@aws-amplify/backend-data")
-        .advisories
-    ).toEqual(["1240992", "1241230", "1241677", "1242173"]);
+      Object.fromEntries(
+        config.exceptions.map((exception) => [exception.package, exception.advisories])
+      )
+    ).toEqual(expectedAdvisories);
   });
 
   it("collects high/critical advisory IDs through the audit dependency chain", () => {
