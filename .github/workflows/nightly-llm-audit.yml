@@ -1,0 +1,58 @@
+name: "🧠 Audit LLM Hebdomadaire"
+
+on:
+  schedule:
+    # Chaque dimanche à 02:15 UTC (après l'analyse de 02:00, avant l'autofix de 02:45)
+    - cron: "15 2 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  models: read
+
+concurrency:
+  group: nightly-llm-audit
+  cancel-in-progress: false
+
+jobs:
+  llm-audit:
+    name: "Audit LLM (GitHub Models)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Audit npm (données pour l'audit)
+        run: npm audit --json > audit.json || true
+
+      - name: Générer le rapport d'audit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .github/scripts/llm-audit.mjs /tmp/llm-audit.md audit.json
+
+      - name: Résumé du job
+        run: cat /tmp/llm-audit.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publier le rapport en commentaire de l'issue d'analyse
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          number=$(gh issue list --state open --label analyse-nocturne --limit 1 --json number --jq '.[0].number // empty')
+          if [ -z "$number" ]; then
+            echo "Aucune issue d'analyse ouverte : rapport disponible dans le résumé du job."
+            exit 0
+          fi
+          # Limite de commentaire GitHub : 65536 caractères
+          head -c 60000 /tmp/llm-audit.md > /tmp/llm-audit-comment.md
+          gh issue comment "$number" --body-file /tmp/llm-audit-comment.md
