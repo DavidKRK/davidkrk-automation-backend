@@ -1,24 +1,97 @@
-name: Nightly AutoFix from Analysis Report (V2)
+name: Nightly AutoFix (sécurité d'abord, puis dépendances)
 
 on:
   workflow_dispatch:
   schedule:
-    # Chaque dimanche à 02:30 UTC (après le rapport de 02:00 UTC)
-    - cron: "30 2 * * 0"
+    # Chaque dimanche à 02:45 UTC (après l'analyse de 02:00 et l'audit LLM de 02:15)
+    - cron: "45 2 * * 0"
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+  contents: read
 
 concurrency:
   group: nightly-autofix
   cancel-in-progress: false
 
 jobs:
-  autofix:
+  # Étape 1 : failles de sécurité, par sévérité décroissante (une PR par sévérité, jamais de fusion automatique).
+  security-fix:
+    name: "Correctifs sécurité (${{ matrix.severity }})"
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        severity: [critical, high, moderate]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Plan des correctifs
+        id: plan
+        run: |
+          npm audit --json > audit.json || true
+          node .github/scripts/security-autofix-plan.mjs audit.json "${{ matrix.severity }}"
+
+      - name: Mise à jour ciblée (sans montée majeure)
+        if: steps.plan.outputs.count != '0'
+        env:
+          NAMES: ${{ steps.plan.outputs.names }}
+        run: |
+          set -euo pipefail
+          # NAMES ne contient que des noms de paquets validés par le script de plan.
+          # shellcheck disable=SC2086
+          npm update $NAMES --ignore-scripts
+          npm install --package-lock-only --ignore-scripts
+
+      - name: Vérifications
+        if: steps.plan.outputs.count != '0'
+        run: |
+          npm ci --ignore-scripts
+          npm run typecheck
+          npm test
+
+      - name: Ouvrir la PR (revue humaine obligatoire)
+        if: steps.plan.outputs.count != '0'
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c
+        with:
+          branch: bot/security-autofix-${{ matrix.severity }}
+          commit-message: "fix(security): correctifs npm audit ${{ matrix.severity }}"
+          title: "fix(security): correctifs npm audit ${{ matrix.severity }}"
+          body: |
+            Correctifs de sécurité automatiques, sévérité **${{ matrix.severity }}**.
+
+            - mise à jour ciblée sans montée majeure (`npm update`)
+            - `typecheck` et tests exécutés avant l'ouverture
+            - **à relire et fusionner manuellement** ; paquets restant à traiter à la main : ${{ steps.plan.outputs.manual }}
+          labels: |
+            security
+            automated pr
+          draft: false
+
+  # Étape 2 : dépendances obsolètes autorisées, après la sécurité.
+  deps-fix:
+    needs: security-fix
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -135,12 +208,12 @@ jobs:
         run: echo "No allowed dependencies to auto-fix."
 
       - name: Create branch name
-        if: steps.parse.outputs.count != '0'
+        if: steps.parse.outputs.count != '' && steps.parse.outputs.count != '0'
         id: branch
         run: echo "name=bot/nightly-autofix-${{ github.run_id }}" >> "$GITHUB_OUTPUT"
 
       - name: Update allowed dependencies (targeted)
-        if: steps.parse.outputs.count != '0'
+        if: steps.parse.outputs.count != '' && steps.parse.outputs.count != '0'
         shell: bash
         env:
           NAMES_JSON: ${{ steps.parse.outputs.names_json }}
@@ -163,7 +236,7 @@ jobs:
           npm install
 
       - name: Guardrail - fail on blocked major bumps
-        if: steps.parse.outputs.count != '0'
+        if: steps.parse.outputs.count != '' && steps.parse.outputs.count != '0'
         shell: bash
         run: |
           set -euo pipefail
@@ -202,13 +275,13 @@ jobs:
           NODE
 
       - name: Run checks
-        if: steps.parse.outputs.count != '0'
+        if: steps.parse.outputs.count != '' && steps.parse.outputs.count != '0'
         run: |
           npm run typecheck --if-present
           npm test --if-present
 
       - name: Create Pull Request
-        if: steps.parse.outputs.count != '0'
+        if: steps.parse.outputs.count != '' && steps.parse.outputs.count != '0'
         id: cpr
         uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c
         with:
@@ -230,7 +303,7 @@ jobs:
           draft: false
 
       - name: Comment on source issue with PR link
-        if: steps.parse.outputs.count != '0' && steps.cpr.outputs.pull-request-number != ''
+        if: steps.parse.outputs.count != '' && steps.parse.outputs.count != '0' && steps.cpr.outputs.pull-request-number != ''
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
         with:
           script: |
@@ -252,8 +325,8 @@ jobs:
               ].join("\n")
             });
 
-      - name: Close source issue when no updates are needed
-        if: steps.parse.outputs.count == '0'
+      - name: Commenter sans fermer l'issue quand aucune mise à jour n'est applicable
+        if: steps.issue.outputs.found == 'true' && steps.parse.outputs.count == '0'
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
         with:
           script: |
@@ -265,15 +338,8 @@ jobs:
               repo,
               issue_number,
               body: [
-                "✅ Aucun correctif automatique applicable cette nuit.",
+                "ℹ️ Autofix terminé : aucune mise à jour de dépendance applicable automatiquement.",
                 "",
-                "Fermeture automatique de l’issue."
+                "L'issue reste ouverte : les constats du rapport (sécurité, audit LLM) doivent être traités ou clos par un humain."
               ].join("\n")
-            });
-
-            await github.rest.issues.update({
-              owner,
-              repo,
-              issue_number,
-              state: "closed"
             });
