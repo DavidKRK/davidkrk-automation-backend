@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -38,7 +40,7 @@ jobs:
           cache: npm
 
       - name: Install
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Plan des correctifs
         id: plan
@@ -64,8 +66,22 @@ jobs:
           npm run typecheck
           npm test
 
-      - name: Ouvrir la PR (revue humaine obligatoire)
+      - name: Vérifier l'audit post-mise-à-jour
         if: steps.plan.outputs.count != '0'
+        id: verify
+        env:
+          TARGET_SEVERITY: ${{ matrix.severity }}
+        run: |
+          npm audit --json > audit-after-update.json || true
+          remaining="$(node -e 'const fs=require("fs");const sev=process.env.TARGET_SEVERITY;const audit=JSON.parse(fs.readFileSync("audit-after-update.json","utf8"));const count=Object.values(audit.vulnerabilities ?? {}).filter((v) => v.severity === sev).length;process.stdout.write(String(count));')"
+          echo "remaining=${remaining}" >> "$GITHUB_OUTPUT"
+          if [ "${remaining}" != "0" ]; then
+            echo "Des advisories ${{ matrix.severity }} restent présents (${remaining}), PR non ouverte."
+            exit 1
+          fi
+
+      - name: Ouvrir la PR (revue humaine obligatoire)
+        if: steps.plan.outputs.count != '0' && steps.verify.outputs.remaining == '0'
         uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c
         with:
           branch: bot/security-autofix-${{ matrix.severity }}
@@ -85,7 +101,7 @@ jobs:
   # Étape 2 : dépendances obsolètes autorisées, après la sécurité.
   deps-fix:
     needs: security-fix
-    if: ${{ !cancelled() }}
+    if: ${{ needs.security-fix.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -97,6 +113,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020

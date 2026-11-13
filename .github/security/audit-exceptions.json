@@ -1,19 +1,6 @@
 {
   "exceptions": [
     {
-      "id": "amplify-backend-direct-high-temporary",
-      "package": "@aws-amplify/backend",
-      "nodePathContains": "node_modules/@aws-amplify/backend",
-      "advisories": ["1241230", "1242879", "1243066"],
-      "severity": "high",
-      "owner": "@DavidKRK",
-      "issue": "#171",
-      "upstreamPackage": "@aws-amplify/backend",
-      "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
-      "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
-    },
-    {
       "id": "amplify-backend-auth-direct-high-temporary",
       "package": "@aws-amplify/backend-auth",
       "nodePathContains": "node_modules/@aws-amplify/backend-auth",
