@@ -55,6 +55,13 @@ npm ci
 npm run typecheck
 ```
 
+Le workflow GitHub Actions **OSV-Scanner** analyse aussi les dépendances du
+`package-lock.json`. Il signale les nouvelles vulnérabilités des pull requests
+et publie un bilan complet dans **Security → Code scanning** sur `main` et
+chaque semaine. Ce contrôle complète l'audit npm existant et n'est pas exigé
+pour fusionner ; le bilan complet ne met pas le job en échec pour les
+vulnérabilités existantes.
+
 4. Déployer via Amplify CLI :
 
 ```bash
