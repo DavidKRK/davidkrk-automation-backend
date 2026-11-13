@@ -42,10 +42,10 @@ describe("temporary audit exception configuration", () => {
 
   it("tracks current high/critical advisories for direct Amplify exceptions", () => {
     const expectedAdvisories = {
-      "@aws-amplify/backend": ["1241230", "1241677", "1242173", "1242879", "1243066"],
+      "@aws-amplify/backend": ["1241230", "1242879", "1243066"],
       "@aws-amplify/backend-auth": ["1243066"],
-      "@aws-amplify/backend-cli": ["1241230", "1241677", "1242173", "1242879", "1243066"],
-      "@aws-amplify/backend-data": ["1241230", "1241677", "1242173", "1242879", "1243066"],
+      "@aws-amplify/backend-cli": ["1241230", "1242879", "1243066"],
+      "@aws-amplify/backend-data": ["1241230", "1242879", "1243066"],
       "@aws-amplify/backend-function": ["1243066"],
       "@aws-amplify/backend-storage": ["1243066"],
       "@aws-amplify/data-construct": ["1243066"],
