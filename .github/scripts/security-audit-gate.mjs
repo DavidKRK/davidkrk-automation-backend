@@ -8,6 +8,24 @@ import {
 const auditPath = process.argv[2] ?? "audit.json";
 const exceptionsPath = process.argv[3] ?? ".github/security/audit-exceptions.json";
 
+function isValidViaItem(item) {
+  if (typeof item === "string") {
+    return item.trim() !== "";
+  }
+
+  return Boolean(
+    item &&
+    typeof item === "object" &&
+    !Array.isArray(item) &&
+    Number.isSafeInteger(item.source) &&
+    item.source > 0 &&
+    ["low", "moderate", "high", "critical"].includes(item.severity) &&
+    ["name", "dependency", "title", "url", "range"].every(
+      (field) => typeof item[field] === "string" && item[field].trim() !== ""
+    )
+  );
+}
+
 const audit = JSON.parse(fs.readFileSync(auditPath, "utf8"));
 const exceptionConfig = JSON.parse(fs.readFileSync(exceptionsPath, "utf8"));
 let exceptions;
@@ -42,9 +60,19 @@ if (vulnerabilities.some(([, vulnerability]) =>
   !["info", "low", "moderate", "high", "critical"].includes(vulnerability.severity) ||
   typeof vulnerability.isDirect !== "boolean" ||
   !Array.isArray(vulnerability.via) ||
+  vulnerability.via.length === 0 ||
+  vulnerability.via.some((item) => !isValidViaItem(item)) ||
   !Array.isArray(vulnerability.nodes)
 )) {
   console.error("Rapport npm audit invalide: structure de vulnérabilité inattendue.");
+  process.exit(1);
+}
+
+if (vulnerabilities.some(([, vulnerability]) =>
+  ["high", "critical"].includes(vulnerability.severity) &&
+  getHighSeverityAdvisoryIds(vulnerability, audit.vulnerabilities).length === 0
+)) {
+  console.error("Rapport npm audit invalide: chaîne d'advisories high/critical vide ou inexploitable.");
   process.exit(1);
 }
 

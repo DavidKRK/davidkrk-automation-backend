@@ -26,6 +26,13 @@ function runGate(audit, exceptions = []) {
 }
 
 // Fixtures contractuelles synthétiques, sans lien avec un audit réel.
+function advisory(source, severity = "high") {
+  return {
+    source, name: "test-advisory", dependency: "transitive", title: "Test advisory",
+    url: "https://example.test/advisory", severity, range: "<1.0.0",
+  };
+}
+
 function fixture() {
   return { vulnerabilities: {
     direct: {
@@ -34,7 +41,7 @@ function fixture() {
     },
     transitive: {
       severity: "high", isDirect: false,
-      via: [{ source: 101, severity: "high" }],
+      via: [advisory(101)],
       nodes: ["node_modules/transitive"], effects: ["direct"],
     },
   } };
@@ -57,6 +64,16 @@ test("rejects registry error objects and missing or invalid findings", () => {
   for (const report of [null, [], {}, { vulnerabilities: [] },
     { error: { code: "EAUDIT" }, vulnerabilities: {} },
     { vulnerabilities: { bad: {} } },
+    { vulnerabilities: { bad: {
+      severity: "high", isDirect: false, via: [], nodes: [],
+    } } },
+    { vulnerabilities: { bad: {
+      severity: "high", isDirect: false, via: [null], nodes: [],
+    } } },
+    { vulnerabilities: { bad: {
+      severity: "high", isDirect: false,
+      via: [{ source: 101, severity: "high" }], nodes: [],
+    } } },
   ]) {
     const result = runGate(report);
     assert.equal(result.status, 1);
@@ -79,7 +96,7 @@ test("accepts an exact recursive advisory match", () => {
 
 test("does not treat a new advisory as already accepted", () => {
   const report = fixture();
-  report.vulnerabilities.transitive.via.push({ source: 102, severity: "critical" });
+  report.vulnerabilities.transitive.via.push(advisory(102, "critical"));
   const result = runGate(report, [exception()]);
   assert.equal(result.status, 1);
   assert.match(result.output, /observés=\[101, 102\]/);
@@ -111,6 +128,14 @@ test("handles cyclic transitive references without hiding advisories", () => {
   const report = fixture();
   report.vulnerabilities.transitive.via.push("direct");
   assert.equal(runGate(report, [exception()]).status, 0);
+});
+
+test("rejects high findings whose via chain resolves no advisory", () => {
+  const report = fixture();
+  report.vulnerabilities.transitive.via = ["missing-package"];
+  const result = runGate(report);
+  assert.equal(result.status, 1);
+  assert.match(result.output, /chaîne d'advisories high\/critical vide ou inexploitable/);
 });
 
 test("preserves the existing non-blocking transitive policy", () => {
