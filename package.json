@@ -29,7 +29,7 @@
     "@aws-amplify/backend-data": "^1.9.0",
     "@aws-amplify/backend-function": "^1.19.0",
     "@aws-amplify/backend-storage": "^1.6.0",
-    "@aws-amplify/data-construct": "^1.17.8",
+    "@aws-amplify/data-construct": "^1.17.9",
     "@aws-amplify/graphql-api-construct": "^1.22.3",
     "@aws-sdk/client-dynamodb": "^3.1152.0",
     "@aws-sdk/lib-dynamodb": "^3.1156.0",
