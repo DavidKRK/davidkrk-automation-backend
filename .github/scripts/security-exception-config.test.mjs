@@ -86,6 +86,7 @@ describe("temporary audit exception configuration", () => {
       "@aws-amplify/backend": {
         nodes: ["node_modules/@aws-amplify/backend"],
         via: ["dependency"],
+        severity: "high",
       },
       dependency: {
         via: [
@@ -121,6 +122,32 @@ describe("temporary audit exception configuration", () => {
           ...vulnerabilities["@aws-amplify/backend"],
           nodes: ["node_modules/another-package"],
         },
+        vulnerabilities
+      )
+    ).toBeUndefined();
+  });
+
+  it("does not match an exception when severity differs", () => {
+    const vulnerabilities = {
+      "@aws-amplify/backend": {
+        nodes: ["node_modules/@aws-amplify/backend"],
+        via: ["dependency"],
+        severity: "critical",
+      },
+      dependency: {
+        via: [
+          { source: 1241230, severity: "high" },
+          { source: 1242879, severity: "high" },
+          { source: 1243066, severity: "high" },
+        ],
+      },
+    };
+
+    expect(
+      findMatchingAuditException(
+        config.exceptions,
+        "@aws-amplify/backend",
+        vulnerabilities["@aws-amplify/backend"],
         vulnerabilities
       )
     ).toBeUndefined();

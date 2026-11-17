@@ -137,6 +137,10 @@ export function findMatchingAuditException(
       return false;
     }
 
+    if (exception.severity !== vulnerability.severity) {
+      return false;
+    }
+
     const nodes = vulnerability.nodes ?? [];
     if (!nodes.some((node) => node.includes(exception.nodePathContains))) {
       return false;
