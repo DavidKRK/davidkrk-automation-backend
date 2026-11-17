@@ -44,7 +44,6 @@ describe("temporary audit exception configuration", () => {
 
   it("tracks current high/critical advisories for direct Amplify exceptions", () => {
     const expectedAdvisories = {
-      "@aws-amplify/backend": ["1241230", "1242879", "1243066"],
       "@aws-amplify/backend-auth": ["1243066"],
       "@aws-amplify/backend-cli": ["1241230", "1242879", "1243066"],
       "@aws-amplify/backend-data": ["1241230", "1242879", "1243066"],
@@ -83,17 +82,13 @@ describe("temporary audit exception configuration", () => {
 
   it("matches an exception only when package, installed path, and advisories all match", () => {
     const vulnerabilities = {
-      "@aws-amplify/backend": {
-        nodes: ["node_modules/@aws-amplify/backend"],
+      "@aws-amplify/backend-auth": {
+        nodes: ["node_modules/@aws-amplify/backend-auth"],
         via: ["dependency"],
         severity: "high",
       },
       dependency: {
-        via: [
-          { source: 1241230, severity: "high" },
-          { source: 1242879, severity: "high" },
-          { source: 1243066, severity: "high" },
-        ],
+        via: [{ source: 1243066, severity: "high" }],
       },
     };
     const exceptions = config.exceptions;
@@ -101,25 +96,25 @@ describe("temporary audit exception configuration", () => {
     expect(
       findMatchingAuditException(
         exceptions,
-        "@aws-amplify/backend",
-        vulnerabilities["@aws-amplify/backend"],
+        "@aws-amplify/backend-auth",
+        vulnerabilities["@aws-amplify/backend-auth"],
         vulnerabilities
       )?.id
-    ).toBe("amplify-backend-direct-high-temporary");
+    ).toBe("amplify-backend-auth-direct-high-temporary");
     expect(
       findMatchingAuditException(
         exceptions,
-        "@aws-amplify/backend-auth",
-        vulnerabilities["@aws-amplify/backend"],
+        "@aws-amplify/backend",
+        vulnerabilities["@aws-amplify/backend-auth"],
         vulnerabilities
       )
     ).toBeUndefined();
     expect(
       findMatchingAuditException(
         exceptions,
-        "@aws-amplify/backend",
+        "@aws-amplify/backend-auth",
         {
-          ...vulnerabilities["@aws-amplify/backend"],
+          ...vulnerabilities["@aws-amplify/backend-auth"],
           nodes: ["node_modules/another-package"],
         },
         vulnerabilities
@@ -129,25 +124,19 @@ describe("temporary audit exception configuration", () => {
 
   it("does not match an exception when severity differs", () => {
     const vulnerabilities = {
-      "@aws-amplify/backend": {
-        nodes: ["node_modules/@aws-amplify/backend"],
+      "@aws-amplify/backend-auth": {
+        nodes: ["node_modules/@aws-amplify/backend-auth"],
         via: ["dependency"],
         severity: "critical",
       },
-      dependency: {
-        via: [
-          { source: 1241230, severity: "high" },
-          { source: 1242879, severity: "high" },
-          { source: 1243066, severity: "high" },
-        ],
-      },
+      dependency: { via: [{ source: 1243066, severity: "high" }] },
     };
 
     expect(
       findMatchingAuditException(
         config.exceptions,
-        "@aws-amplify/backend",
-        vulnerabilities["@aws-amplify/backend"],
+        "@aws-amplify/backend-auth",
+        vulnerabilities["@aws-amplify/backend-auth"],
         vulnerabilities
       )
     ).toBeUndefined();
@@ -191,7 +180,7 @@ describe("temporary audit exception configuration", () => {
     expect(
       getUnexceptedVulnerabilities(vulnerabilities, config.exceptions, "high", "2026-11-14")
         .map(([name]) => name)
-    ).toEqual(["other-high-package"]);
+    ).toEqual(["@aws-amplify/backend", "other-high-package"]);
     expect(
       getUnexceptedVulnerabilities(vulnerabilities, config.exceptions, "high", "2026-12-01")
         .map(([name]) => name)
@@ -204,6 +193,6 @@ describe("temporary audit exception configuration", () => {
         "2026-11-14",
         ["@aws-amplify/backend"]
       ).map(([name]) => name)
-    ).toEqual([]);
+    ).toEqual(["@aws-amplify/backend"]);
   });
 });
