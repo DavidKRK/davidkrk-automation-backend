@@ -1,9 +1,9 @@
 name: "🧠 Audit LLM Hebdomadaire"
 
 on:
-  schedule:
-    # Chaque dimanche à 02:15 UTC (après l'analyse de 02:00, avant l'autofix de 02:45)
-    - cron: "15 2 * * 0"
+  workflow_run:
+    workflows: ["🔍 Analyse Nocturne du Dépôt"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -18,12 +18,14 @@ concurrency:
 jobs:
   llm-audit:
     name: "Audit LLM (GitHub Models)"
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
 
       - name: Setup Node

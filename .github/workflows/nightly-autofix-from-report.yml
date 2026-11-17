@@ -71,6 +71,7 @@ jobs:
         id: verify
         env:
           TARGET_SEVERITY: ${{ matrix.severity }}
+          PLANNED_NAMES: ${{ steps.plan.outputs.names }}
         run: |
           npm audit --json > audit-after-update.json || true
           remaining="$(node --input-type=module -e '
@@ -81,6 +82,7 @@ jobs:
             } from "./.github/scripts/security-exception-config.mjs";
 
             const severity = process.env.TARGET_SEVERITY;
+            const plannedNames = process.env.PLANNED_NAMES.split(/\s+/).filter(Boolean);
             const audit = JSON.parse(fs.readFileSync("audit-after-update.json", "utf8"));
             const config = JSON.parse(fs.readFileSync(".github/security/audit-exceptions.json", "utf8"));
             const exceptions = validateExceptionConfig(config);
@@ -90,7 +92,8 @@ jobs:
               vulnerabilities,
               exceptions,
               severity,
-              today
+              today,
+              plannedNames
             ).length;
 
             process.stdout.write(String(remaining));

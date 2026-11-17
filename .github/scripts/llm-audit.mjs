@@ -128,7 +128,11 @@ async function chat(system, user) {
     });
     if (res.ok) {
       const data = await res.json();
-      return data.choices?.[0]?.message?.content ?? "";
+      const content = data.choices?.[0]?.message?.content;
+      if (typeof content !== "string" || !content.trim()) {
+        throw new Error("GitHub Models a retourné une réponse vide ou invalide.");
+      }
+      return content;
     }
     if ((res.status === 429 || res.status >= 500) && attempt < 4) {
       const wait = Number(res.headers.get("retry-after")) || 15 * attempt;
@@ -143,6 +147,7 @@ async function chat(system, user) {
 
 const system = systemPrompt();
 const parts = [];
+let successfulAnalyses = 0;
 
 for (const domain of domains) {
   const context = domain.context().slice(0, CONTEXT_CHARS);
@@ -157,21 +162,30 @@ for (const domain of domains) {
   console.log(`Audit : ${domain.title}`);
   try {
     parts.push(`## ${domain.title}\n\n${await chat(system, prompt)}`);
+    successfulAnalyses++;
   } catch (error) {
     parts.push(`## ${domain.title}\n\n_Analyse indisponible : ${error.message}_`);
   }
   await sleep(5000);
 }
 
+if (successfulAnalyses === 0) {
+  console.error("Aucune analyse de domaine exploitable n'a été produite.");
+  process.exit(1);
+}
+
 let synthesis;
+let synthesisFailed = false;
 try {
   const digest = parts.join("\n\n").slice(0, CONTEXT_CHARS);
   synthesis = await chat(
     system,
     [
       "À partir des analyses par domaine ci-dessous, produis UNIQUEMENT les sections A (résumé exécutif),",
+      "B (forces), C (problèmes critiques), D (problèmes importants), E (améliorations recommandées),",
       "F (tableau de priorisation : ID, titre, gravité, zone, impact, effort, priorité, recommandation),",
-      "G (plan d'action 24h / 7j / 30j / long terme) et H (check-list finale). Classe par gravité décroissante.",
+      "G (plan d'action 24h / 7j / 30j / long terme) et H (check-list finale).",
+      "N'omets aucune section; si une section ne contient aucun constat, indique-le explicitement. Classe par gravité décroissante.",
       "",
       "=== ANALYSES ===",
       digest,
@@ -179,9 +193,14 @@ try {
   );
 } catch (error) {
   synthesis = `_Synthèse indisponible : ${error.message}_`;
+  synthesisFailed = true;
 }
 
 const header = `# Rapport d'audit LLM — ${new Date().toISOString().slice(0, 10)}\n\n_Modèle : ${MODEL} via GitHub Models. Rapport automatique à valider par un humain ; les sections A–H détaillées suivent le format de \`.github/agents/my-agent.agent.md\`._\n\n`;
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, `${header}${synthesis}\n\n---\n\n# Détail par domaine\n\n${parts.join("\n\n")}\n`);
 console.log(`Rapport écrit dans ${outPath}`);
+if (synthesisFailed || !synthesis.trim()) {
+  console.error("Aucune synthèse exploitable n'a été produite.");
+  process.exitCode = 1;
+}

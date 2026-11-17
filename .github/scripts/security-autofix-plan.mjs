@@ -19,7 +19,7 @@ const names = [];
 const manual = [];
 
 for (const [name, vuln] of Object.entries(audit.vulnerabilities ?? {})) {
-  if (vuln.severity !== severity) continue;
+  if (vuln.severity !== severity || !vuln.isDirect) continue;
   const fix = vuln.fixAvailable;
   const autoFixable = fix === true || (typeof fix === "object" && fix !== null && fix.isSemVerMajor === false);
   if (autoFixable && SAFE_NAME.test(name)) {

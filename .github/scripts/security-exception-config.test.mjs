@@ -132,16 +132,25 @@ describe("temporary audit exception configuration", () => {
         nodes: ["node_modules/@aws-amplify/backend"],
         via: ["dependency"],
         severity: "high",
+        isDirect: true,
       },
       "other-high-package": {
         nodes: ["node_modules/other-high-package"],
         via: [{ source: 200, severity: "high" }],
         severity: "high",
+        isDirect: true,
+      },
+      "transitive-high-package": {
+        nodes: ["node_modules/transitive-high-package"],
+        via: [{ source: 202, severity: "high" }],
+        severity: "high",
+        isDirect: false,
       },
       "moderate-package": {
         nodes: ["node_modules/moderate-package"],
         via: [{ source: 201, severity: "moderate" }],
         severity: "moderate",
+        isDirect: true,
       },
       dependency: {
         via: [
@@ -160,5 +169,14 @@ describe("temporary audit exception configuration", () => {
       getUnexceptedVulnerabilities(vulnerabilities, config.exceptions, "high", "2026-12-01")
         .map(([name]) => name)
     ).toEqual(["@aws-amplify/backend", "other-high-package"]);
+    expect(
+      getUnexceptedVulnerabilities(
+        vulnerabilities,
+        config.exceptions,
+        "high",
+        "2026-11-14",
+        ["@aws-amplify/backend"]
+      ).map(([name]) => name)
+    ).toEqual([]);
   });
 });

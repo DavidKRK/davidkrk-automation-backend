@@ -156,9 +156,21 @@ export function findMatchingAuditException(
   });
 }
 
-export function getUnexceptedVulnerabilities(vulnerabilities, exceptions, severity, today) {
+export function getUnexceptedVulnerabilities(
+  vulnerabilities,
+  exceptions,
+  severity,
+  today,
+  packageNames
+) {
+  const selectedPackages = packageNames ? new Set(packageNames) : undefined;
+
   return Object.entries(vulnerabilities).filter(([packageName, vulnerability]) => {
-    if (vulnerability.severity !== severity) {
+    if (
+      vulnerability.severity !== severity ||
+      !vulnerability.isDirect ||
+      (selectedPackages && !selectedPackages.has(packageName))
+    ) {
       return false;
     }
 
