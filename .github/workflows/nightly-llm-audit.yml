@@ -18,7 +18,11 @@ concurrency:
 jobs:
   llm-audit:
     name: "Audit LLM (GitHub Models)"
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -41,7 +45,7 @@ jobs:
         run: node .github/scripts/llm-audit.mjs /tmp/llm-audit.md audit.json
 
       - name: Résumé du job
-        run: cat /tmp/llm-audit.md >> "$GITHUB_STEP_SUMMARY"
+        run: cat /tmp/llm-audit.md > "$GITHUB_STEP_SUMMARY"
 
       - name: Publier le rapport en commentaire de l'issue d'analyse
         env:
