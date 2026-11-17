@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import {
-  getHighSeverityAdvisoryIds,
-  hasExactAdvisories,
+  findMatchingAuditException,
   validateExceptionConfig,
 } from "./security-exception-config.mjs";
 
@@ -32,28 +31,12 @@ for (const [name, vuln] of vulnerabilities) {
     continue;
   }
 
-  const match = exceptions.find((exception) => {
-    if (exception.package !== name) {
-      return false;
-    }
-
-    const nodes = vuln.nodes ?? [];
-    if (!nodes.some((node) => node.includes(exception.nodePathContains))) {
-      return false;
-    }
-
-    const advisoryIds = getHighSeverityAdvisoryIds(vuln, audit.vulnerabilities ?? {});
-    if (!hasExactAdvisories(exception.advisories, advisoryIds)) {
-      return false;
-    }
-
-    if (!exception.effectContains) {
-      return true;
-    }
-
-    const effects = vuln.effects ?? [];
-    return effects.some((effect) => effect.includes(exception.effectContains));
-  });
+  const match = findMatchingAuditException(
+    exceptions,
+    name,
+    vuln,
+    audit.vulnerabilities ?? {}
+  );
 
   if (!match) {
     if (vuln.isDirect) {

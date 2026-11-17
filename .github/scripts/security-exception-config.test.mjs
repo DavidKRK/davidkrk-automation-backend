@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  findMatchingAuditException,
+  getUnexceptedVulnerabilities,
   getHighSeverityAdvisoryIds,
   hasExactAdvisories,
   validateExceptionConfig,
@@ -77,5 +79,86 @@ describe("temporary audit exception configuration", () => {
     ]);
     expect(hasExactAdvisories(["101", "103"], ["103", "101"])).toBe(true);
     expect(hasExactAdvisories(["101"], ["101", "104"])).toBe(false);
+  });
+
+  it("matches an exception only when package, installed path, and advisories all match", () => {
+    const vulnerabilities = {
+      "@aws-amplify/backend": {
+        nodes: ["node_modules/@aws-amplify/backend"],
+        via: ["dependency"],
+      },
+      dependency: {
+        via: [
+          { source: 1241230, severity: "high" },
+          { source: 1242879, severity: "high" },
+          { source: 1243066, severity: "high" },
+        ],
+      },
+    };
+    const exceptions = config.exceptions;
+
+    expect(
+      findMatchingAuditException(
+        exceptions,
+        "@aws-amplify/backend",
+        vulnerabilities["@aws-amplify/backend"],
+        vulnerabilities
+      )?.id
+    ).toBe("amplify-backend-direct-high-temporary");
+    expect(
+      findMatchingAuditException(
+        exceptions,
+        "@aws-amplify/backend-auth",
+        vulnerabilities["@aws-amplify/backend"],
+        vulnerabilities
+      )
+    ).toBeUndefined();
+    expect(
+      findMatchingAuditException(
+        exceptions,
+        "@aws-amplify/backend",
+        {
+          ...vulnerabilities["@aws-amplify/backend"],
+          nodes: ["node_modules/another-package"],
+        },
+        vulnerabilities
+      )
+    ).toBeUndefined();
+  });
+
+  it("counts only unmatched or expired findings of the target severity", () => {
+    const vulnerabilities = {
+      "@aws-amplify/backend": {
+        nodes: ["node_modules/@aws-amplify/backend"],
+        via: ["dependency"],
+        severity: "high",
+      },
+      "other-high-package": {
+        nodes: ["node_modules/other-high-package"],
+        via: [{ source: 200, severity: "high" }],
+        severity: "high",
+      },
+      "moderate-package": {
+        nodes: ["node_modules/moderate-package"],
+        via: [{ source: 201, severity: "moderate" }],
+        severity: "moderate",
+      },
+      dependency: {
+        via: [
+          { source: 1241230, severity: "high" },
+          { source: 1242879, severity: "high" },
+          { source: 1243066, severity: "high" },
+        ],
+      },
+    };
+
+    expect(
+      getUnexceptedVulnerabilities(vulnerabilities, config.exceptions, "high", "2026-11-14")
+        .map(([name]) => name)
+    ).toEqual(["other-high-package"]);
+    expect(
+      getUnexceptedVulnerabilities(vulnerabilities, config.exceptions, "high", "2026-11-16")
+        .map(([name]) => name)
+    ).toEqual(["@aws-amplify/backend", "other-high-package"]);
   });
 });

@@ -73,7 +73,28 @@ jobs:
           TARGET_SEVERITY: ${{ matrix.severity }}
         run: |
           npm audit --json > audit-after-update.json || true
-          remaining="$(node -e 'const fs=require("fs");const sev=process.env.TARGET_SEVERITY;const audit=JSON.parse(fs.readFileSync("audit-after-update.json","utf8"));const count=Object.values(audit.vulnerabilities ?? {}).filter((v) => v.severity === sev).length;process.stdout.write(String(count));')"
+          remaining="$(node --input-type=module -e '
+            import fs from "node:fs";
+            import {
+              getUnexceptedVulnerabilities,
+              validateExceptionConfig,
+            } from "./.github/scripts/security-exception-config.mjs";
+
+            const severity = process.env.TARGET_SEVERITY;
+            const audit = JSON.parse(fs.readFileSync("audit-after-update.json", "utf8"));
+            const config = JSON.parse(fs.readFileSync(".github/security/audit-exceptions.json", "utf8"));
+            const exceptions = validateExceptionConfig(config);
+            const vulnerabilities = audit.vulnerabilities ?? {};
+            const today = new Date().toISOString().slice(0, 10);
+            const remaining = getUnexceptedVulnerabilities(
+              vulnerabilities,
+              exceptions,
+              severity,
+              today
+            ).length;
+
+            process.stdout.write(String(remaining));
+          ')"
           echo "remaining=${remaining}" >> "$GITHUB_OUTPUT"
           if [ "${remaining}" != "0" ]; then
             echo "Des advisories ${{ matrix.severity }} restent présents (${remaining}), PR non ouverte."
