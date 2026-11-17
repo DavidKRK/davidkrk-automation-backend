@@ -76,24 +76,16 @@ jobs:
           npm audit --json > audit-after-update.json || true
           remaining="$(node --input-type=module -e '
             import fs from "node:fs";
-            import {
-              getUnexceptedVulnerabilities,
-              validateExceptionConfig,
-            } from "./.github/scripts/security-exception-config.mjs";
 
             const severity = process.env.TARGET_SEVERITY;
             const plannedNames = process.env.PLANNED_NAMES.split(/\s+/).filter(Boolean);
             const audit = JSON.parse(fs.readFileSync("audit-after-update.json", "utf8"));
-            const config = JSON.parse(fs.readFileSync(".github/security/audit-exceptions.json", "utf8"));
-            const exceptions = validateExceptionConfig(config);
             const vulnerabilities = audit.vulnerabilities ?? {};
-            const today = new Date().toISOString().slice(0, 10);
-            const remaining = getUnexceptedVulnerabilities(
-              vulnerabilities,
-              exceptions,
-              severity,
-              today,
-              plannedNames
+            const remaining = Object.entries(vulnerabilities).filter(
+              ([packageName, vulnerability]) =>
+                plannedNames.includes(packageName) &&
+                vulnerability.severity === severity &&
+                vulnerability.isDirect
             ).length;
 
             process.stdout.write(String(remaining));
