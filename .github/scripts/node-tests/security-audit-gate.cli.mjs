@@ -63,6 +63,7 @@ test("accepts a valid empty audit report", () => {
 test("rejects registry error objects and missing or invalid findings", () => {
   for (const report of [null, [], {}, { vulnerabilities: [] },
     { error: { code: "EAUDIT" }, vulnerabilities: {} },
+    { error: "", vulnerabilities: {} },
     { vulnerabilities: { bad: {} } },
     { vulnerabilities: { bad: {
       severity: "high", isDirect: false, via: [], nodes: [],
@@ -132,10 +133,28 @@ test("handles cyclic transitive references without hiding advisories", () => {
 
 test("rejects high findings whose via chain resolves no advisory", () => {
   const report = fixture();
-  report.vulnerabilities.transitive.via = ["missing-package"];
+  report.vulnerabilities.transitive.via = [advisory(101, "moderate")];
   const result = runGate(report);
   assert.equal(result.status, 1);
   assert.match(result.output, /chaîne d'advisories high\/critical vide ou inexploitable/);
+});
+
+test("rejects unresolved package references even when another advisory resolves", () => {
+  const report = fixture();
+  report.vulnerabilities.transitive.via.push("missing-package");
+  const result = runGate(report, [exception()]);
+  assert.equal(result.status, 1);
+  assert.match(result.output, /référence de paquet `via` non résolue/);
+});
+
+test("rejects non-string nodes and effects", () => {
+  for (const field of ["nodes", "effects"]) {
+    const report = fixture();
+    report.vulnerabilities.transitive[field] = [null];
+    const result = runGate(report);
+    assert.equal(result.status, 1);
+    assert.match(result.output, /structure de vulnérabilité inattendue/);
+  }
 });
 
 test("preserves the existing non-blocking transitive policy", () => {

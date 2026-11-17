@@ -26,6 +26,35 @@ function isValidViaItem(item) {
   );
 }
 
+function hasResolvedViaReferences(vulnerability, vulnerabilities) {
+  const visited = new Set();
+
+  function visit(via) {
+    for (const item of via) {
+      if (typeof item !== "string") {
+        continue;
+      }
+
+      if (!Object.hasOwn(vulnerabilities, item)) {
+        return false;
+      }
+
+      if (visited.has(item)) {
+        continue;
+      }
+
+      visited.add(item);
+      if (!visit(vulnerabilities[item].via)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  return visit(vulnerability.via);
+}
+
 const audit = JSON.parse(fs.readFileSync(auditPath, "utf8"));
 const exceptionConfig = JSON.parse(fs.readFileSync(exceptionsPath, "utf8"));
 let exceptions;
@@ -43,7 +72,7 @@ if (
   !audit ||
   typeof audit !== "object" ||
   Array.isArray(audit) ||
-  audit.error ||
+  Object.hasOwn(audit, "error") ||
   !audit.vulnerabilities ||
   typeof audit.vulnerabilities !== "object" ||
   Array.isArray(audit.vulnerabilities)
@@ -62,9 +91,20 @@ if (vulnerabilities.some(([, vulnerability]) =>
   !Array.isArray(vulnerability.via) ||
   vulnerability.via.length === 0 ||
   vulnerability.via.some((item) => !isValidViaItem(item)) ||
-  !Array.isArray(vulnerability.nodes)
+  !Array.isArray(vulnerability.nodes) ||
+  vulnerability.nodes.some((node) => typeof node !== "string" || node.trim() === "") ||
+  (vulnerability.effects !== undefined &&
+    (!Array.isArray(vulnerability.effects) ||
+      vulnerability.effects.some((effect) => typeof effect !== "string" || effect.trim() === "")))
 )) {
   console.error("Rapport npm audit invalide: structure de vulnérabilité inattendue.");
+  process.exit(1);
+}
+
+if (vulnerabilities.some(([, vulnerability]) =>
+  !hasResolvedViaReferences(vulnerability, audit.vulnerabilities)
+)) {
+  console.error("Rapport npm audit invalide: référence de paquet `via` non résolue.");
   process.exit(1);
 }
 
