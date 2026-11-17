@@ -157,7 +157,7 @@ describe("temporary audit exception configuration", () => {
         .map(([name]) => name)
     ).toEqual(["other-high-package"]);
     expect(
-      getUnexceptedVulnerabilities(vulnerabilities, config.exceptions, "high", "2026-11-16")
+      getUnexceptedVulnerabilities(vulnerabilities, config.exceptions, "high", "2026-12-01")
         .map(([name]) => name)
     ).toEqual(["@aws-amplify/backend", "other-high-package"]);
   });
