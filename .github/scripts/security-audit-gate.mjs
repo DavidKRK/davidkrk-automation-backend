@@ -8,6 +8,53 @@ import {
 const auditPath = process.argv[2] ?? "audit.json";
 const exceptionsPath = process.argv[3] ?? ".github/security/audit-exceptions.json";
 
+function isValidViaItem(item) {
+  if (typeof item === "string") {
+    return item.trim() !== "";
+  }
+
+  return Boolean(
+    item &&
+    typeof item === "object" &&
+    !Array.isArray(item) &&
+    Number.isSafeInteger(item.source) &&
+    item.source > 0 &&
+    ["low", "moderate", "high", "critical"].includes(item.severity) &&
+    ["name", "dependency", "title", "url", "range"].every(
+      (field) => typeof item[field] === "string" && item[field].trim() !== ""
+    )
+  );
+}
+
+function hasResolvedViaReferences(vulnerability, vulnerabilities) {
+  const visited = new Set();
+
+  function visit(via) {
+    for (const item of via) {
+      if (typeof item !== "string") {
+        continue;
+      }
+
+      if (!Object.hasOwn(vulnerabilities, item)) {
+        return false;
+      }
+
+      if (visited.has(item)) {
+        continue;
+      }
+
+      visited.add(item);
+      if (!visit(vulnerabilities[item].via)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  return visit(vulnerability.via);
+}
+
 const audit = JSON.parse(fs.readFileSync(auditPath, "utf8"));
 const exceptionConfig = JSON.parse(fs.readFileSync(exceptionsPath, "utf8"));
 let exceptions;
@@ -19,7 +66,55 @@ try {
   process.exit(1);
 }
 
-const vulnerabilities = Object.entries(audit.vulnerabilities ?? {});
+// npm peut renvoyer un objet d'erreur JSON au lieu d'un rapport exploitable.
+// Ne jamais interpréter l'absence de findings comme un audit réussi.
+if (
+  !audit ||
+  typeof audit !== "object" ||
+  Array.isArray(audit) ||
+  Object.hasOwn(audit, "error") ||
+  !audit.vulnerabilities ||
+  typeof audit.vulnerabilities !== "object" ||
+  Array.isArray(audit.vulnerabilities)
+) {
+  console.error("Rapport npm audit invalide ou en erreur: policy non évaluée.");
+  process.exit(1);
+}
+
+const vulnerabilities = Object.entries(audit.vulnerabilities);
+if (vulnerabilities.some(([, vulnerability]) =>
+  !vulnerability ||
+  typeof vulnerability !== "object" ||
+  Array.isArray(vulnerability) ||
+  !["info", "low", "moderate", "high", "critical"].includes(vulnerability.severity) ||
+  typeof vulnerability.isDirect !== "boolean" ||
+  !Array.isArray(vulnerability.via) ||
+  vulnerability.via.length === 0 ||
+  vulnerability.via.some((item) => !isValidViaItem(item)) ||
+  !Array.isArray(vulnerability.nodes) ||
+  vulnerability.nodes.some((node) => typeof node !== "string" || node.trim() === "") ||
+  (vulnerability.effects !== undefined &&
+    (!Array.isArray(vulnerability.effects) ||
+      vulnerability.effects.some((effect) => typeof effect !== "string" || effect.trim() === "")))
+)) {
+  console.error("Rapport npm audit invalide: structure de vulnérabilité inattendue.");
+  process.exit(1);
+}
+
+if (vulnerabilities.some(([, vulnerability]) =>
+  !hasResolvedViaReferences(vulnerability, audit.vulnerabilities)
+)) {
+  console.error("Rapport npm audit invalide: référence de paquet `via` non résolue.");
+  process.exit(1);
+}
+
+if (vulnerabilities.some(([, vulnerability]) =>
+  ["high", "critical"].includes(vulnerability.severity) &&
+  getHighSeverityAdvisoryIds(vulnerability, audit.vulnerabilities).length === 0
+)) {
+  console.error("Rapport npm audit invalide: chaîne d'advisories high/critical vide ou inexploitable.");
+  process.exit(1);
+}
 
 const blockers = [];
 const allowedExceptions = [];
@@ -32,8 +127,11 @@ for (const [name, vuln] of vulnerabilities) {
     continue;
   }
 
-  const match = exceptions.find((exception) => {
-    if (exception.package !== name) {
+  const advisoryIds = getHighSeverityAdvisoryIds(vuln, audit.vulnerabilities);
+  const configuredExceptions = exceptions.filter((exception) => exception.package === name);
+
+  const match = configuredExceptions.find((exception) => {
+    if (exception.severity !== vuln.severity) {
       return false;
     }
 
@@ -42,7 +140,6 @@ for (const [name, vuln] of vulnerabilities) {
       return false;
     }
 
-    const advisoryIds = getHighSeverityAdvisoryIds(vuln, audit.vulnerabilities ?? {});
     if (!hasExactAdvisories(exception.advisories, advisoryIds)) {
       return false;
     }
@@ -57,7 +154,15 @@ for (const [name, vuln] of vulnerabilities) {
 
   if (!match) {
     if (vuln.isDirect) {
-      blockers.push(`${name}: vulnérabilité ${vuln.severity} directe`);
+      const observed = advisoryIds.join(", ") || "aucun identifiant exploitable";
+      const configured = configuredExceptions.length === 0
+        ? "aucune exception configurée"
+        : configuredExceptions.map((exception) =>
+            `${exception.id}: advisories=[${[...exception.advisories].sort().join(", ")}], severity=${exception.severity}, expiresOn=${exception.expiresOn}`
+          ).join("; ");
+      blockers.push(
+        `${name}: vulnérabilité ${vuln.severity} directe; observés=[${observed}]; configuration: ${configured}; aucune exception exacte applicable`
+      );
       continue;
     }
     transitiveWarnings.push(`${name}: vulnérabilité ${vuln.severity} transitive (non bloquante)`);

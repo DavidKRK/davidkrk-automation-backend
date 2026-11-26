@@ -32,6 +32,9 @@ jobs:
           node-version-file: ".nvmrc"
           cache: "npm"
 
+      - name: Tester la policy de sécurité sans dépendances
+        run: node --test .github/scripts/node-tests/security-audit-gate.cli.mjs
+
       - name: Installation des dépendances
         # S'appuyer sur le manifeste/lockfile du dépôt pour éviter toute
         # réintroduction d'une version Amplify CLI forcée et non publiée.
@@ -51,6 +54,15 @@ jobs:
 
       - name: Appliquer la policy de sécurité CI
         run: node .github/scripts/security-audit-gate.mjs audit.json .github/security/audit-exceptions.json
+
+      - name: Conserver le rapport npm audit même en échec
+        if: ${{ always() && hashFiles('audit.json') != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: npm-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: audit.json
+          if-no-files-found: error
+          retention-days: 7
 
   weekly-upstream-monitor:
     name: "Weekly upstream monitor (temporary transitive security exceptions)"
