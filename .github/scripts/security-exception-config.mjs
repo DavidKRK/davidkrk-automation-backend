@@ -125,3 +125,65 @@ export function hasExactAdvisories(expected, actual) {
     expectedIds.every((advisory, index) => advisory === actualIds[index])
   );
 }
+
+export function findMatchingAuditException(
+  exceptions,
+  packageName,
+  vulnerability,
+  vulnerabilities
+) {
+  return exceptions.find((exception) => {
+    if (exception.package !== packageName) {
+      return false;
+    }
+
+    if (exception.severity !== vulnerability.severity) {
+      return false;
+    }
+
+    const nodes = vulnerability.nodes ?? [];
+    if (!nodes.some((node) => node.includes(exception.nodePathContains))) {
+      return false;
+    }
+
+    const advisoryIds = getHighSeverityAdvisoryIds(vulnerability, vulnerabilities);
+    if (!hasExactAdvisories(exception.advisories, advisoryIds)) {
+      return false;
+    }
+
+    if (!exception.effectContains) {
+      return true;
+    }
+
+    const effects = vulnerability.effects ?? [];
+    return effects.some((effect) => effect.includes(exception.effectContains));
+  });
+}
+
+export function getUnexceptedVulnerabilities(
+  vulnerabilities,
+  exceptions,
+  severity,
+  today,
+  packageNames
+) {
+  const selectedPackages = packageNames ? new Set(packageNames) : undefined;
+
+  return Object.entries(vulnerabilities).filter(([packageName, vulnerability]) => {
+    if (
+      vulnerability.severity !== severity ||
+      !vulnerability.isDirect ||
+      (selectedPackages && !selectedPackages.has(packageName))
+    ) {
+      return false;
+    }
+
+    const exception = findMatchingAuditException(
+      exceptions,
+      packageName,
+      vulnerability,
+      vulnerabilities
+    );
+    return !exception || today > exception.expiresOn;
+  });
+}
