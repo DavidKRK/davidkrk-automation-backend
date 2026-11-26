@@ -1,6 +1,25 @@
 {
   "exceptions": [
     {
+      "id": "amplify-backend-direct-high-temporary",
+      "package": "@aws-amplify/backend",
+      "nodePathContains": "node_modules/@aws-amplify/backend",
+      "advisories": [
+        "1241230",
+        "1241677",
+        "1242173",
+        "1242879",
+        "1243066"
+      ],
+      "severity": "high",
+      "owner": "@DavidKRK",
+      "issue": "#171",
+      "upstreamPackage": "@aws-amplify/backend",
+      "expiresOn": "2026-11-15",
+      "reason": "npm audit (2026-10-30) rapporte un finding high direct sur @aws-amplify/backend (avis 1241230, 1241677, 1242173, 1242879, 1243066) via des dépendances transitives sans correctif publié (zod <4.6.6 : aucune version 3.x corrigée, passage en 4.x non compatible sans validation Amplify; fixAvailable=false). Outillage de build/CDK uniquement, hors runtime Lambda. L’issue #171 centralise le suivi. Exception non prolongée : elle expire le 2026-11-15.",
+      "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
+    },
+    {
       "id": "amplify-backend-auth-direct-high-temporary",
       "package": "@aws-amplify/backend-auth",
       "nodePathContains": "node_modules/@aws-amplify/backend-auth",
@@ -12,7 +31,7 @@
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-auth",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-auth; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "reason": "npm audit (2026-10-30) rapporte un finding high direct sur @aws-amplify/backend-auth (avis 1243066) via des dépendances transitives sans correctif publié (zod <4.6.6 : aucune version 3.x corrigée, passage en 4.x non compatible sans validation Amplify; fixAvailable=false). Outillage de build/CDK uniquement, hors runtime Lambda. L’issue #171 centralise le suivi. Exception non prolongée : elle expire le 2026-11-15.",
       "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend-auth dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
@@ -21,6 +40,8 @@
       "nodePathContains": "node_modules/@aws-amplify/backend-cli",
       "advisories": [
         "1241230",
+        "1241677",
+        "1242173",
         "1242879",
         "1243066"
       ],
@@ -29,7 +50,7 @@
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-cli",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-cli; l’issue #171 suit l’option amont corrigée, qui doit être confirmée car aucun correctif compatible n’est actuellement identifié par npm. Cette exception expire le 2026-11-15.",
+      "reason": "npm audit (2026-10-30) rapporte un finding high direct sur @aws-amplify/backend-cli (avis 1241230, 1241677, 1242173, 1242879, 1243066) via des dépendances transitives sans correctif publié (zod <4.6.6 : aucune version 3.x corrigée, passage en 4.x non compatible sans validation Amplify; fixAvailable=false). Outillage de build/CDK uniquement, hors runtime Lambda. L’issue #171 centralise le suivi. Exception non prolongée : elle expire le 2026-11-15.",
       "removalPlan": "Suivre l’avis et les releases de @aws-amplify/backend-cli dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
@@ -38,6 +59,8 @@
       "nodePathContains": "node_modules/@aws-amplify/backend-data",
       "advisories": [
         "1241230",
+        "1241677",
+        "1242173",
         "1242879",
         "1243066"
       ],
@@ -46,7 +69,7 @@
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-data",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-data; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "reason": "npm audit (2026-10-30) rapporte un finding high direct sur @aws-amplify/backend-data (avis 1241230, 1241677, 1242173, 1242879, 1243066) via des dépendances transitives sans correctif publié (zod <4.6.6 : aucune version 3.x corrigée, passage en 4.x non compatible sans validation Amplify; fixAvailable=false). Outillage de build/CDK uniquement, hors runtime Lambda. L’issue #171 centralise le suivi. Exception non prolongée : elle expire le 2026-11-15.",
       "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend-data dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
@@ -61,7 +84,7 @@
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-function",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-function; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "reason": "npm audit (2026-10-30) rapporte un finding high direct sur @aws-amplify/backend-function (avis 1243066) via des dépendances transitives sans correctif publié (zod <4.6.6 : aucune version 3.x corrigée, passage en 4.x non compatible sans validation Amplify; fixAvailable=false). Outillage de build/CDK uniquement, hors runtime Lambda. L’issue #171 centralise le suivi. Exception non prolongée : elle expire le 2026-11-15.",
       "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend-function dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
@@ -76,7 +99,7 @@
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-storage",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-storage; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "reason": "npm audit (2026-10-30) rapporte un finding high direct sur @aws-amplify/backend-storage (avis 1243066) via des dépendances transitives sans correctif publié (zod <4.6.6 : aucune version 3.x corrigée, passage en 4.x non compatible sans validation Amplify; fixAvailable=false). Outillage de build/CDK uniquement, hors runtime Lambda. L’issue #171 centralise le suivi. Exception non prolongée : elle expire le 2026-11-15.",
       "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend-storage dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
@@ -91,7 +114,7 @@
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/data-construct",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/data-construct; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "reason": "npm audit (2026-10-30) rapporte un finding high direct sur @aws-amplify/data-construct (avis 1243066) via des dépendances transitives sans correctif publié (zod <4.6.6 : aucune version 3.x corrigée, passage en 4.x non compatible sans validation Amplify; fixAvailable=false). Outillage de build/CDK uniquement, hors runtime Lambda. L’issue #171 centralise le suivi. Exception non prolongée : elle expire le 2026-11-15.",
       "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/data-construct dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
@@ -106,25 +129,8 @@
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/graphql-api-construct",
       "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/graphql-api-construct; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "reason": "npm audit (2026-10-30) rapporte un finding high direct sur @aws-amplify/graphql-api-construct (avis 1243066) via des dépendances transitives sans correctif publié (zod <4.6.6 : aucune version 3.x corrigée, passage en 4.x non compatible sans validation Amplify; fixAvailable=false). Outillage de build/CDK uniquement, hors runtime Lambda. L’issue #171 centralise le suivi. Exception non prolongée : elle expire le 2026-11-15.",
       "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/graphql-api-construct dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
-    },
-    {
-      "id": "amplify-backend-direct-high-temporary",
-      "package": "@aws-amplify/backend",
-      "nodePathContains": "node_modules/@aws-amplify/backend",
-      "advisories": [
-        "1241230",
-        "1242879",
-        "1243066"
-      ],
-      "severity": "high",
-      "owner": "@DavidKRK",
-      "issue": "#171",
-      "upstreamPackage": "@aws-amplify/backend",
-      "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high direct pour @aws-amplify/backend, causé par des dépendances Amplify déjà suivies dans l’issue #171. Cette exception temporaire expire le 2026-11-15.",
-      "removalPlan": "Suivre les avis et les releases de @aws-amplify/backend dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin et ces avis ont disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     }
   ]
 }
