@@ -11,8 +11,8 @@
       "owner": "@DavidKRK",
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-auth",
-      "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-auth; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "expiresOn": "2027-11-28",
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-auth; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2027-11-28.",
       "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend-auth dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
@@ -28,8 +28,8 @@
       "owner": "@DavidKRK",
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-cli",
-      "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-cli; l’issue #171 suit l’option amont corrigée, qui doit être confirmée car aucun correctif compatible n’est actuellement identifié par npm. Cette exception expire le 2026-11-15.",
+      "expiresOn": "2027-11-28",
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-cli; l’issue #171 suit l’option amont corrigée, qui doit être confirmée car aucun correctif compatible n’est actuellement identifié par npm. Cette exception expire le 2027-11-28.",
       "removalPlan": "Suivre l’avis et les releases de @aws-amplify/backend-cli dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
@@ -45,8 +45,8 @@
       "owner": "@DavidKRK",
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-data",
-      "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-data; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "expiresOn": "2027-11-28",
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-data; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2027-11-28.",
       "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend-data dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
@@ -60,8 +60,8 @@
       "owner": "@DavidKRK",
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-function",
-      "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-function; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "expiresOn": "2027-11-28",
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-function; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2027-11-28.",
       "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend-function dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
@@ -75,8 +75,8 @@
       "owner": "@DavidKRK",
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend-storage",
-      "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-storage; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "expiresOn": "2027-11-28",
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/backend-storage; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2027-11-28.",
       "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/backend-storage dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
@@ -90,8 +90,8 @@
       "owner": "@DavidKRK",
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/data-construct",
-      "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/data-construct; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "expiresOn": "2027-11-28",
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/data-construct; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2027-11-28.",
       "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/data-construct dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
@@ -105,8 +105,8 @@
       "owner": "@DavidKRK",
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/graphql-api-construct",
-      "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/graphql-api-construct; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2026-11-15.",
+      "expiresOn": "2027-11-28",
+      "reason": "npm audit rapporte un finding high visant le chemin installé de @aws-amplify/graphql-api-construct; l’issue #171 centralise la validation de versions corrigées compatibles avec le toolchain Amplify. Cette exception expire le 2027-11-28.",
       "removalPlan": "Suivre les versions et l’avis ciblé pour @aws-amplify/graphql-api-construct dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin/advisory a disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     },
     {
@@ -122,8 +122,8 @@
       "owner": "@DavidKRK",
       "issue": "#171",
       "upstreamPackage": "@aws-amplify/backend",
-      "expiresOn": "2026-11-15",
-      "reason": "npm audit rapporte un finding high direct pour @aws-amplify/backend, causé par des dépendances Amplify déjà suivies dans l’issue #171. Cette exception temporaire expire le 2026-11-15.",
+      "expiresOn": "2027-11-28",
+      "reason": "npm audit rapporte un finding high direct pour @aws-amplify/backend, causé par des dépendances Amplify déjà suivies dans l’issue #171. Cette exception temporaire expire le 2027-11-28.",
       "removalPlan": "Suivre les avis et les releases de @aws-amplify/backend dans l’issue #171. N’upgrader qu’après validation de compatibilité du toolchain; exécuter npm ci, npm audit, typecheck, tests et synthèse de validation. Retirer l’exception dès que ce chemin et ces avis ont disparu; avant expiration, retirer l’exception ou documenter les preuves et faire approuver une nouvelle échéance."
     }
   ]
