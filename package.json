@@ -13,7 +13,7 @@
   "license": "MIT-0",
   "devDependencies": {
     "@aws-amplify/backend": "^1.25.1",
-    "@aws-amplify/backend-cli": "^1.10.0",
+    "@aws-amplify/backend-cli": "^1.10.1",
     "@types/aws-lambda": "^8.10.163",
     "@types/node": "^26.6.5",
     "aws-cdk": "^2.1148.0",
@@ -22,6 +22,7 @@
     "esbuild": "^0.28.2",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",
+    "vite": "^8.4.0",
     "vitest": "^5.0.4"
   },
   "dependencies": {
@@ -29,8 +30,8 @@
     "@aws-amplify/backend-data": "^1.9.0",
     "@aws-amplify/backend-function": "^1.19.0",
     "@aws-amplify/backend-storage": "^1.6.0",
-    "@aws-amplify/data-construct": "^1.17.8",
-    "@aws-amplify/graphql-api-construct": "^1.22.3",
+    "@aws-amplify/data-construct": "^1.17.10",
+    "@aws-amplify/graphql-api-construct": "^1.22.5",
     "@aws-sdk/client-dynamodb": "^3.1152.0",
     "@aws-sdk/lib-dynamodb": "^3.1156.0",
     "aws-amplify": "^6.22.2"
